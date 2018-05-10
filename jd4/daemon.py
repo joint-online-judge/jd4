@@ -1,12 +1,14 @@
 from aiohttp import ClientError
 from asyncio import gather, get_event_loop, sleep, shield, wait, FIRST_COMPLETED
 from io import BytesIO
+from os import path
+from tempfile import mkdtemp
 
 from jd4.api import VJ4Session
 from jd4.case import read_cases
 from jd4.cache import cache_open, cache_invalidate
 from jd4.cgroup import try_init_cgroup
-from jd4.compile import build
+from jd4.compile import build, CODE_TYPE_TEXT, CODE_TYPE_TAR, CODE_TYPE_ZIP
 from jd4.config import config, save_config
 from jd4.log import logger
 from jd4.status import STATUS_ACCEPTED, STATUS_COMPILE_ERROR, \
@@ -14,8 +16,10 @@ from jd4.status import STATUS_ACCEPTED, STATUS_COMPILE_ERROR, \
 
 RETRY_DELAY_SEC = 30
 
+
 class CompileError(Exception):
     pass
+
 
 class JudgeHandler:
     def __init__(self, session, request, ws):
@@ -41,7 +45,15 @@ class JudgeHandler:
         self.pid = self.request.pop('pid')
         self.rid = self.request.pop('rid')
         self.lang = self.request.pop('lang')
-        self.code = self.request.pop('code')
+        self.code_type = self.request.pop('code_type')
+        if self.code_type == CODE_TYPE_TEXT:
+            self.code = self.request.pop('code')
+        else:
+            self.code = path.join(mkdtemp(suffix='jd4.code.'))
+            await self.session.record_code_data(self.rid, path.join(self.code, 'code'))
+
+        # TODO(tc-imba) pretest not supported
+
         try:
             if self.type == 0:
                 await self.do_submission()
@@ -129,6 +141,7 @@ class JudgeHandler:
     def end(self, **kwargs):
         self.ws.send_json({'key': 'end', 'tag': self.tag, **kwargs})
 
+
 async def update_problem_data(session):
     logger.info('Update problem data')
     result = await session.judge_datalist(config.get('last_update_at', 0))
@@ -138,15 +151,18 @@ async def update_problem_data(session):
     config['last_update_at'] = result['time']
     await save_config()
 
+
 async def do_judge(session):
     await update_problem_data(session)
     await session.judge_consume(JudgeHandler)
+
 
 async def do_noop(session):
     while True:
         await sleep(3600)
         logger.info('Updating session')
         await session.judge_noop()
+
 
 async def daemon():
     try_init_cgroup()
@@ -164,6 +180,7 @@ async def daemon():
                 logger.exception(e)
             logger.info('Retrying after %d seconds', RETRY_DELAY_SEC)
             await sleep(RETRY_DELAY_SEC)
+
 
 if __name__ == '__main__':
     get_event_loop().run_until_complete(daemon())
