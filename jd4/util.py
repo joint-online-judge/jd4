@@ -85,5 +85,8 @@ def extract_tar_file(tmp_dir, sandbox_dir):
     file_path = path.join(tmp_dir, 'code')
     with tarfile.open(file_path) as t:
         t.extractall(path=sandbox_dir)
+        print('file extracted')
     remove(file_path)
+    print('tar removed')
     rmdir(tmp_dir)
+    print('dir removed')

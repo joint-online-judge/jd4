@@ -14,7 +14,7 @@ from jd4.log import logger
 from jd4.status import STATUS_ACCEPTED, STATUS_COMPILE_ERROR, \
     STATUS_SYSTEM_ERROR, STATUS_JUDGING, STATUS_COMPILING
 
-RETRY_DELAY_SEC = 30
+RETRY_DELAY_SEC = 3
 
 
 class CompileError(Exception):
@@ -47,11 +47,12 @@ class JudgeHandler:
         self.lang = self.request.pop('lang')
         self.code_type = self.request.pop('code_type')
         if self.code_type == CODE_TYPE_TEXT:
-            self.code = self.request.pop('code')
+            self.code = self.request.pop('code').encode()
         else:
-            self.code = path.join(mkdtemp(suffix='jd4.code.'))
+            self.code = path.join(mkdtemp(prefix='jd4.code.'))
             await self.session.record_code_data(self.rid, path.join(self.code, 'code'))
 
+        logger.info('code dir: %s', self.code)
         # TODO(tc-imba) pretest not supported
 
         try:
@@ -95,7 +96,8 @@ class JudgeHandler:
 
     async def build(self):
         self.next(status=STATUS_COMPILING)
-        package, message, _, _ = await shield(build(self.lang, self.code.encode()))
+        package, message, _, _ = await shield(
+            build(self.lang, self.code, self.code_type))
         self.next(compiler_text=message)
         if not package:
             logger.debug('Compile error: %s', message)

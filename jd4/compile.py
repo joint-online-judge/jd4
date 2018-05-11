@@ -91,6 +91,7 @@ class Compiler:
                                        path.join(sandbox.in_dir, self.code_file),
                                        code)
         elif code_type == CODE_TYPE_TAR:
+            print(code, sandbox.in_dir)
             await loop.run_in_executor(None,
                                        extract_tar_file,
                                        code,
@@ -98,11 +99,13 @@ class Compiler:
 
     async def build(self, sandbox, *, output_file=None, cgroup_file=None):
         loop = get_event_loop()
+        print('start build')
         status = await sandbox.call(SANDBOX_COMPILE,
                                     self.compiler_file,
                                     self.compiler_args,
                                     output_file,
                                     cgroup_file)
+        print('end build status:', status)
         if status:
             return None, status
         package_dir = mkdtemp(prefix='jd4.package.')
@@ -110,6 +113,7 @@ class Compiler:
                                    copytree,
                                    sandbox.out_dir,
                                    path.join(package_dir, 'package'))
+        print('copy tree end')
         return Package(package_dir, self.execute_file, self.execute_args), 0
 
 

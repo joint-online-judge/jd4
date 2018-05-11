@@ -44,8 +44,13 @@ class Sandbox:
 
     async def call(self, command, *args):
         pickle.dump((command, *args), self.writer)
-        length, = unpack('I', await self.reader.read(4))
+        print(self.reader, self.writer)
+        a = await self.reader.read(4)
+        print(a)
+        length, = unpack('I', a)
+        print(2)
         ret, err = pickle.loads(await self.reader.read(length))
+        print(3)
         if err:
             raise err
         return ret
@@ -61,18 +66,27 @@ def _handle_reset_child():
     remove_under('/tmp')
 
 def _handle_compile(compiler_file, compiler_args, output_file, cgroup_file):
+    print('handle compile 0')
     pid = fork()
+    print('handle compile 1')
     if not pid:
+        print(pid)
         chdir('/out')
+        print('chdir')
         os_close(STDIN_FILENO)
+        print('os_close')
         if output_file:
-            fd = os_open(output_file, O_WRONLY)
-            dup2(fd, STDOUT_FILENO)
-            dup2(fd, STDERR_FILENO)
-            os_close(fd)
+            # fd = os_open(output_file, O_WRONLY)
+            # dup2(fd, STDOUT_FILENO)
+            # dup2(fd, STDERR_FILENO)
+            # os_close(fd)
+            pass
         if cgroup_file:
             enter_cgroup(cgroup_file)
+            print('enter_cgroup')
+        print('execve')
         execve(compiler_file, compiler_args, SPAWN_ENV)
+        print('execve end')
     return wait_and_reap_zombies(pid)
 
 
