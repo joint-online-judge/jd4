@@ -5,10 +5,10 @@ from os import path
 from tempfile import mkdtemp
 
 from jd4.api import VJ4Session
-from jd4.case import read_cases
+from jd4.case import read_config
 from jd4.cache import cache_open, cache_invalidate
 from jd4.cgroup import try_init_cgroup
-from jd4.compile import build, CODE_TYPE_TEXT, CODE_TYPE_TAR, CODE_TYPE_ZIP
+from jd4.compile import build, has_lang, CODE_TYPE_TEXT
 from jd4.config import config, save_config
 from jd4.log import logger
 from jd4.status import STATUS_ACCEPTED, STATUS_COMPILE_ERROR, \
@@ -56,6 +56,7 @@ class JudgeHandler:
         # TODO(tc-imba) pretest not supported
 
         try:
+            await self.prepare()
             if self.type == 0:
                 await self.do_submission()
             elif self.type == 1:
@@ -78,36 +79,44 @@ class JudgeHandler:
         logger.debug('Invalidated %s/%s', domain_id, pid)
         await update_problem_data(self.session)
 
-    async def do_submission(self):
+    async def prepare(self):
         loop = get_event_loop()
+        config_file = await loop.create_task(
+            cache_open(self.session, self.domain_id, self.pid))
+        if not has_lang(self.lang):
+            raise SystemError('Unsupported language: {}'.format(self.lang))
+        self.config = read_config(config_file, self.lang)
+
+    async def do_submission(self):
+        # loop = get_event_loop()
         logger.info('Submission: %s, %s, %s', self.domain_id, self.pid, self.rid)
-        cases_file_task = loop.create_task(cache_open(self.session, self.domain_id, self.pid))
+        # cases_file_task = loop.create_task(cache_open(self.session, self.domain_id, self.pid))
         package = await self.build()
-        with await cases_file_task as cases_file:
-            await self.judge(cases_file, package)
+        # with await cases_file_task as cases_file:
+        await self.judge(package)
 
     async def do_pretest(self):
-        loop = get_event_loop()
+        # loop = get_event_loop()
         logger.info('Pretest: %s, %s, %s', self.domain_id, self.pid, self.rid)
-        cases_data_task = loop.create_task(self.session.record_pretest_data(self.rid))
+        # cases_data_task = loop.create_task(self.session.record_pretest_data(self.rid))
         package = await self.build()
-        with BytesIO(await cases_data_task) as cases_file:
-            await self.judge(cases_file, package)
+        # with BytesIO(await cases_data_task) as cases_file:
+        await self.judge(package)
 
     async def build(self):
         self.next(status=STATUS_COMPILING)
         package, message, _, _ = await shield(
-            build(self.lang, self.code, self.code_type))
+            build(self.lang, self.code, self.code_type, self.config.get('lang')))
         self.next(compiler_text=message)
         if not package:
             logger.debug('Compile error: %s', message)
             raise CompileError(message)
         return package
 
-    async def judge(self, cases_file, package):
+    async def judge(self, package):
         loop = get_event_loop()
         self.next(status=STATUS_JUDGING, progress=0)
-        cases = list(read_cases(cases_file))
+        cases = list(self.config['cases'])
         total_status = STATUS_ACCEPTED
         total_score = 0
         total_time_usage_ns = 0

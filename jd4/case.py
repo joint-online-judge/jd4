@@ -1,5 +1,7 @@
 import csv
 import re
+import shlex
+
 from asyncio import gather, get_event_loop
 from functools import partial
 from io import BytesIO, TextIOWrapper
@@ -12,19 +14,21 @@ from zipfile import ZipFile, BadZipFile
 
 from jd4._compare import compare_stream
 from jd4.cgroup import wait_cgroup
-from jd4.compile import build
+from jd4.compile import build, has_lang
 from jd4.error import FormatError
 from jd4.pool import get_sandbox, put_sandbox
 from jd4.status import STATUS_ACCEPTED, STATUS_WRONG_ANSWER, \
-                       STATUS_TIME_LIMIT_EXCEEDED, STATUS_MEMORY_LIMIT_EXCEEDED, \
-                       STATUS_RUNTIME_ERROR, STATUS_SYSTEM_ERROR
+    STATUS_TIME_LIMIT_EXCEEDED, STATUS_MEMORY_LIMIT_EXCEEDED, \
+    STATUS_RUNTIME_ERROR, STATUS_SYSTEM_ERROR
 from jd4.util import read_pipe, parse_memory_bytes, parse_time_ns
+from jd4.log import logger
 
 CHUNK_SIZE = 32768
 MAX_STDERR_SIZE = 8192
 DEFAULT_TIME_NS = 1000000000
 DEFAULT_MEMORY_BYTES = 268435456
 PROCESS_LIMIT = 64
+
 
 class CaseBase:
     def __init__(self, time_limit_ns, memory_limit_bytes, process_limit, score):
@@ -85,6 +89,7 @@ class CaseBase:
         finally:
             put_sandbox(sandbox)
 
+
 def dos2unix(src, dst):
     while True:
         buf = src.read(CHUNK_SIZE)
@@ -92,6 +97,7 @@ def dos2unix(src, dst):
             break
         buf = buf.replace(b'\r', b'')
         dst.write(buf)
+
 
 class DefaultCase(CaseBase):
     def __init__(self, open_input, open_output, time_ns, memory_bytes, score):
@@ -109,6 +115,7 @@ class DefaultCase(CaseBase):
     def do_output(self, output_file):
         with open(output_file, 'rb') as out, self.open_output() as ans:
             return compare_stream(ans, out)
+
 
 class CustomJudgeCase:
     def __init__(self, open_input, time_ns, memory_bytes, open_judge, judge_lang):
@@ -152,7 +159,7 @@ class CustomJudgeCase:
             judge_extra_file = path.join(judge_sandbox.in_dir, 'extra')
             mkfifo(judge_extra_file)
             with socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK) as user_cgroup_sock, \
-                 socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK) as judge_cgroup_sock:
+                    socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK) as judge_cgroup_sock:
                 user_cgroup_sock.bind(path.join(user_sandbox.in_dir, 'cgroup'))
                 judge_cgroup_sock.bind(path.join(judge_sandbox.in_dir, 'cgroup'))
                 user_cgroup_sock.listen()
@@ -195,8 +202,8 @@ class CustomJudgeCase:
                 (judge_time_usage_ns, judge_memory_usage_bytes) = \
                     await others_task
             if (judge_execute_status or
-                judge_memory_usage_bytes >= DEFAULT_MEMORY_BYTES or
-                judge_time_usage_ns >= DEFAULT_TIME_NS):
+                    judge_memory_usage_bytes >= DEFAULT_MEMORY_BYTES or
+                    judge_time_usage_ns >= DEFAULT_TIME_NS):
                 status = STATUS_SYSTEM_ERROR
                 score = 0
             elif user_memory_usage_bytes >= self.memory_bytes:
@@ -225,6 +232,7 @@ class CustomJudgeCase:
         except BrokenPipeError:
             pass
 
+
 class APlusBCase(CaseBase):
     def __init__(self, a, b, time_limit_ns, memory_limit_bytes, score):
         super().__init__(time_limit_ns, memory_limit_bytes, PROCESS_LIMIT, score)
@@ -242,6 +250,8 @@ class APlusBCase(CaseBase):
         with open(output_file, 'rb') as file:
             return compare_stream(BytesIO(str(self.a + self.b).encode()), file)
 
+
+# deprecated in cb4
 def read_legacy_cases(config, open):
     num_cases = int(config.readline())
     for line in islice(csv.reader(config, delimiter='|'), num_cases):
@@ -256,7 +266,9 @@ def read_legacy_cases(config, open):
                           memory_bytes,
                           int(score_str))
 
-def read_yaml_cases(config, open):
+
+# deprecated in cb4
+def read_yaml_cases_old(config, open):
     for case in yaml.safe_load(config)['cases']:
         if 'judge' not in case:
             yield DefaultCase(partial(open, case['input']),
@@ -271,6 +283,8 @@ def read_yaml_cases(config, open):
                                   partial(open, case['judge']),
                                   path.splitext(case['judge'])[1][1:])
 
+
+# deprecated in cb4
 def read_cases(file):
     zip_file = ZipFile(file)
     canonical_dict = dict((name.lower(), name)
@@ -281,6 +295,7 @@ def read_cases(file):
             return zip_file.open(canonical_dict[name.lower()])
         except KeyError:
             raise FileNotFoundError(name) from None
+
     try:
         config = TextIOWrapper(open('config.ini'),
                                encoding='utf-8', errors='replace')
@@ -289,7 +304,65 @@ def read_cases(file):
         pass
     try:
         config = open('config.yaml')
-        return read_yaml_cases(config, open)
+        return read_yaml_cases_old(config, open)
+    except FileNotFoundError:
+        pass
+    raise FormatError('config file not found')
+
+
+def read_yaml_cases(cases, open):
+    for case in cases:
+        if 'judge' not in case:
+            yield DefaultCase(partial(open, case['input']),
+                              partial(open, case['output']),
+                              parse_time_ns(case['time']),
+                              parse_memory_bytes(case['memory']),
+                              int(case['score']))
+        else:
+            yield CustomJudgeCase(partial(open, case['input']),
+                                  parse_time_ns(case['time']),
+                                  parse_memory_bytes(case['memory']),
+                                  partial(open, case['judge']),
+                                  path.splitext(case['judge'])[1][1:])
+
+
+def read_yaml_config(config, lang, open):
+    data = yaml.safe_load(config)
+    data['lang'] = None
+    # if not has_lang(lang):
+    #     logger.warning('Unsupported language: %s', lang)
+    #     return data
+    for _lang in data['languages']:
+        _language = _lang.get('language')
+        if not _language:
+            logger.warning('Language not defined')
+            continue
+        if not lang == _language:
+            continue
+        if _lang.get('compiler_args'):
+            _lang['compiler_args'] = shlex.split(_lang['compiler_args'])
+        if _lang.get('execute_args'):
+            _lang['execute_args'] = shlex.split(_lang['execute_args'])
+        data['lang'] = _lang
+        break
+    data['cases'] = read_yaml_cases(data.get('cases'), open)
+    return data
+
+
+def read_config(file, lang):
+    zip_file = ZipFile(file)
+    canonical_dict = dict((name.lower(), name)
+                          for name in zip_file.namelist())
+
+    def open(name):
+        try:
+            return zip_file.open(canonical_dict[name.lower()])
+        except KeyError:
+            raise FileNotFoundError(name) from None
+
+    try:
+        config = open('config.yaml')
+        return read_yaml_config(config, lang, open)
     except FileNotFoundError:
         pass
     raise FormatError('config file not found')
