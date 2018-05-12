@@ -4,7 +4,7 @@ from asyncio import gather, get_event_loop
 from functools import partial
 from ruamel import yaml
 from socket import socket, AF_UNIX, SOCK_STREAM, SOCK_NONBLOCK
-from os import mkdir, mkfifo, path
+from os import mkdir, mkfifo, path, rename, rmdir
 from shutil import copytree, rmtree
 from tempfile import mkdtemp
 
@@ -13,7 +13,7 @@ from jd4.log import logger
 from jd4.pool import get_sandbox, put_sandbox
 from jd4.sandbox import SANDBOX_COMPILE, SANDBOX_EXECUTE
 from jd4.util import parse_memory_bytes, parse_time_ns, \
-                     read_pipe, write_binary_file
+    read_pipe, write_binary_file, extract_tar_file
 
 _MAX_OUTPUT = 8192
 DEFAULT_TIME = '20s'
@@ -22,6 +22,12 @@ PROCESS_LIMIT = 64
 _CONFIG_DIR = user_config_dir('jd4')
 _LANGS_FILE = path.join(_CONFIG_DIR, 'langs.yaml')
 _langs = dict()
+
+# Code type constants
+CODE_TYPE_TEXT = 0
+CODE_TYPE_TAR = 1
+CODE_TYPE_ZIP = 2
+
 
 class Executable:
     def __init__(self, execute_file, execute_args):
@@ -43,6 +49,7 @@ class Executable:
                                   extra_file,
                                   cgroup_file)
 
+
 class Package:
     def __init__(self, package_dir, execute_file, execute_args):
         self.package_dir = package_dir
@@ -61,6 +68,7 @@ class Package:
                                    path.join(sandbox.in_dir, 'package'))
         return Executable(self.execute_file, self.execute_args)
 
+
 class Compiler:
     def __init__(self,
                  compiler_file,
@@ -74,19 +82,28 @@ class Compiler:
         self.execute_file = execute_file
         self.execute_args = execute_args
 
-    async def prepare(self, sandbox, code):
+    async def prepare(self, sandbox, code, code_type):
         loop = get_event_loop()
         await sandbox.reset()
-        await loop.run_in_executor(None,
-                                   write_binary_file,
-                                   path.join(sandbox.in_dir, self.code_file),
-                                   code)
+        if code_type == CODE_TYPE_TEXT:
+            await loop.run_in_executor(None,
+                                       write_binary_file,
+                                       path.join(sandbox.in_dir, self.code_file),
+                                       code)
+        elif code_type == CODE_TYPE_TAR:
+            await loop.run_in_executor(None,
+                                       extract_tar_file,
+                                       code,
+                                       sandbox.in_dir)
 
-    async def build(self, sandbox, *, output_file=None, cgroup_file=None):
+    async def build(self, sandbox, *, output_file=None, cgroup_file=None, lang_config=None):
+        lang_config = lang_config or {}
         loop = get_event_loop()
+        compiler_file = lang_config.get('compiler_file') or self.compiler_file
+        compiler_args = lang_config.get('compiler_args') or self.compiler_args
         status = await sandbox.call(SANDBOX_COMPILE,
-                                    self.compiler_file,
-                                    self.compiler_args,
+                                    compiler_file,
+                                    compiler_args,
                                     output_file,
                                     cgroup_file)
         if status:
@@ -96,7 +113,10 @@ class Compiler:
                                    copytree,
                                    sandbox.out_dir,
                                    path.join(package_dir, 'package'))
-        return Package(package_dir, self.execute_file, self.execute_args), 0
+        execute_file = lang_config.get('execute_file') or self.execute_file
+        execute_args = lang_config.get('execute_args') or self.execute_args
+        return Package(package_dir, execute_file, execute_args), 0
+
 
 class Interpreter:
     def __init__(self, code_file, execute_file, execute_args):
@@ -104,22 +124,25 @@ class Interpreter:
         self.execute_file = execute_file
         self.execute_args = execute_args
 
-    def build(self, code):
+    def build(self, code, code_type):
         package_dir = mkdtemp(prefix='jd4.package.')
         mkdir(path.join(package_dir, 'package'))
         write_binary_file(path.join(package_dir, 'package', self.code_file),
                           code)
         return Package(package_dir, self.execute_file, self.execute_args)
 
+
 async def _compiler_build(compiler,
                           time_limit_ns,
                           memory_limit_bytes,
                           process_limit,
-                          code):
+                          code,
+                          code_type,
+                          lang_config):
     loop = get_event_loop()
     sandbox, = await get_sandbox(1)
     try:
-        await compiler.prepare(sandbox, code)
+        await compiler.prepare(sandbox, code, code_type)
         output_file = path.join(sandbox.in_dir, 'output')
         mkfifo(output_file)
         with socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK) as cgroup_sock:
@@ -128,7 +151,8 @@ async def _compiler_build(compiler,
             build_task = loop.create_task(compiler.build(
                 sandbox,
                 output_file='/in/output',
-                cgroup_file='/in/cgroup'))
+                cgroup_file='/in/cgroup',
+                lang_config=lang_config))
             others_task = gather(read_pipe(output_file, _MAX_OUTPUT),
                                  wait_cgroup(cgroup_sock,
                                              build_task,
@@ -143,14 +167,21 @@ async def _compiler_build(compiler,
     finally:
         put_sandbox(sandbox)
 
-async def _interpreter_build(interpreter, code):
-    return interpreter.build(code), '', 0, 0
 
-async def build(lang, code):
+async def _interpreter_build(interpreter, code, code_type):
+    return interpreter.build(code, code_type), '', 0, 0
+
+
+async def build(lang, code, code_type=CODE_TYPE_TEXT, lang_config=None):
     build_fn = _langs.get(lang)
     if not build_fn:
         raise SystemError('Unsupported language: {}'.format(lang))
-    return await build_fn(code)
+    return await build_fn(code, code_type, lang_config)
+
+
+def has_lang(lang):
+    return _langs.__contains__(lang)
+
 
 def _init():
     try:
@@ -179,5 +210,6 @@ def _init():
             _langs[lang_name] = partial(_interpreter_build, interpreter)
         else:
             logger.error('Unknown type %s', lang_config['type'])
+
 
 _init()

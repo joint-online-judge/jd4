@@ -1,0 +1,46 @@
+languages:
+- language: cc
+  compiler_args: g++ -O2 -Wall -std=c++11 -o /out/main /in/main.cpp -lm
+  code_file: main.cpp # not necessary in tarball mode
+  execute_file: main # no need to set for an interpreter (will use config in langs.yaml)
+  execute_args: main # the execute args for all test cases
+- language: c
+  compiler_args: gcc -O2 -Wall -std=c11 -o /out/main /in/main.c -lm
+  code_file: main.c # not necessary in tarball mode
+  execute_file: main # no need to set for an interpreter (will use config in langs.yaml)
+  execute_args: main # the execute args for all test cases
+default: &default
+  time: 1s
+  memory: 32m
+  score: 10
+cases:
+- <<: *default
+  input: case0.in
+  output: case0.out
+- <<: *default
+  input: case1.in
+  output: case1.out
+- <<: *default
+  input: case2.in
+  output: case2.out
+- <<: *default
+  input: case3.in
+  output: case3.out
+- <<: *default
+  input: case4.in
+  output: case4.out
+- <<: *default
+  input: case5.in
+  output: case5.out
+- <<: *default
+  input: case6.in
+  output: case6.out
+- <<: *default
+  input: case7.in
+  output: case7.out
+- <<: *default
+  input: case8.in
+  output: case8.out
+- <<: *default
+  input: case9.in
+  output: case9.out

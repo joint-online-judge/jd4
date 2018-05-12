@@ -1,8 +1,8 @@
 import pickle
 from asyncio import gather, get_event_loop, open_connection
 from os import close as os_close, chdir, dup2, execve, fork, mkdir, \
-               open as os_open, path, set_inheritable, spawnve, waitpid, \
-               O_RDONLY, O_WRONLY, P_WAIT
+    open as os_open, path, set_inheritable, spawnve, waitpid, \
+    O_RDONLY, O_WRONLY, P_WAIT
 from pty import STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO
 from shutil import rmtree
 from socket import socketpair
@@ -22,6 +22,7 @@ SANDBOX_BACKDOOR = 1
 SANDBOX_RESET_CHILD = 2
 SANDBOX_COMPILE = 3
 SANDBOX_EXECUTE = 4
+
 
 class Sandbox:
     def __init__(self, pid, sandbox_dir, in_dir, out_dir, reader, writer):
@@ -53,12 +54,15 @@ class Sandbox:
     async def backdoor(self):
         return await self.call(SANDBOX_BACKDOOR)
 
+
 def _handle_backdoor():
     return spawnve(P_WAIT, '/bin/bash', ['bunny'],
                    {'PATH': '/usr/bin:/bin', 'HOME': '/'})
 
+
 def _handle_reset_child():
     remove_under('/tmp')
+
 
 def _handle_compile(compiler_file, compiler_args, output_file, cgroup_file):
     pid = fork()
@@ -70,6 +74,7 @@ def _handle_compile(compiler_file, compiler_args, output_file, cgroup_file):
             dup2(fd, STDOUT_FILENO)
             dup2(fd, STDERR_FILENO)
             os_close(fd)
+            pass
         if cgroup_file:
             enter_cgroup(cgroup_file)
         execve(compiler_file, compiler_args, SPAWN_ENV)
@@ -110,12 +115,14 @@ def _handle_execute(execute_file,
         execve(execute_file, execute_args, SPAWN_ENV)
     return wait_and_reap_zombies(pid)
 
+
 _HANDLERS = {
     SANDBOX_BACKDOOR: _handle_backdoor,
     SANDBOX_RESET_CHILD: _handle_reset_child,
     SANDBOX_COMPILE: _handle_compile,
     SANDBOX_EXECUTE: _handle_execute,
 }
+
 
 def _handle_child(child_socket, root_dir, in_dir, out_dir):
     create_namespace()
@@ -140,6 +147,7 @@ def _handle_child(child_socket, root_dir, in_dir, out_dir):
         socket_file.write(pack('I', len(data)))
         socket_file.write(data)
         socket_file.flush()
+
 
 def create_sandboxes(n):
     parent_sockets = list()
@@ -169,12 +177,15 @@ def create_sandboxes(n):
 
     return gather(*[helper(*sp) for sp in sandbox_params])
 
+
 if __name__ == '__main__':
     sandboxes_task = create_sandboxes(1)
+
 
     async def main():
         sandbox, = await sandboxes_task
         logger.info('sandbox_dir: %s', sandbox.sandbox_dir)
         logger.info('return value: %d', await sandbox.backdoor())
+
 
     get_event_loop().run_until_complete(main())

@@ -121,3 +121,25 @@ class VJ4Session(ClientSession):
             if response.status != 200:
                 raise Exception('http error ' + str(response.status))
             return await response.read()
+
+    async def record_code_data(self, rid, save_path):
+        logger.info('Getting code file: %s', rid)
+        loop = get_event_loop()
+        async with self.get(self.full_url('records', rid, 'code'),
+                            headers={'accept': 'application/json'}) as response:
+            if response.content_type == 'application/json':
+                response_dict = await response.json()
+                if 'error' in response_dict:
+                    error = response_dict['error']
+                    raise VJ4Error(error.get('name', 'unknown'),
+                                   error.get('message', ''),
+                                   *error.get('args', []))
+                raise Exception('unexpected response')
+            if response.status != 200:
+                raise Exception('http error ' + str(response.status))
+            with open(save_path, 'wb') as save_file:
+                while True:
+                    buffer = await response.content.read(_CHUNK_SIZE)
+                    if not buffer:
+                        break
+                    await loop.run_in_executor(None, save_file.write, buffer)

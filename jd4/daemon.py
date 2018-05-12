@@ -1,21 +1,25 @@
 from aiohttp import ClientError
 from asyncio import gather, get_event_loop, sleep, shield, wait, FIRST_COMPLETED
 from io import BytesIO
+from os import path
+from tempfile import mkdtemp
 
 from jd4.api import VJ4Session
-from jd4.case import read_cases
+from jd4.case import read_config
 from jd4.cache import cache_open, cache_invalidate
 from jd4.cgroup import try_init_cgroup
-from jd4.compile import build
+from jd4.compile import build, has_lang, CODE_TYPE_TEXT
 from jd4.config import config, save_config
 from jd4.log import logger
 from jd4.status import STATUS_ACCEPTED, STATUS_COMPILE_ERROR, \
     STATUS_SYSTEM_ERROR, STATUS_JUDGING, STATUS_COMPILING
 
-RETRY_DELAY_SEC = 30
+RETRY_DELAY_SEC = 3
+
 
 class CompileError(Exception):
     pass
+
 
 class JudgeHandler:
     def __init__(self, session, request, ws):
@@ -41,8 +45,18 @@ class JudgeHandler:
         self.pid = self.request.pop('pid')
         self.rid = self.request.pop('rid')
         self.lang = self.request.pop('lang')
-        self.code = self.request.pop('code')
+        self.code_type = self.request.pop('code_type')
+        if self.code_type == CODE_TYPE_TEXT:
+            self.code = self.request.pop('code').encode()
+        else:
+            self.code = path.join(mkdtemp(prefix='jd4.code.'))
+            await self.session.record_code_data(self.rid, path.join(self.code, 'code'))
+
+        logger.info('code dir: %s', self.code)
+        # TODO(tc-imba) pretest not supported
+
         try:
+            await self.prepare()
             if self.type == 0:
                 await self.do_submission()
             elif self.type == 1:
@@ -65,35 +79,44 @@ class JudgeHandler:
         logger.debug('Invalidated %s/%s', domain_id, pid)
         await update_problem_data(self.session)
 
-    async def do_submission(self):
+    async def prepare(self):
         loop = get_event_loop()
+        config_file = await loop.create_task(
+            cache_open(self.session, self.domain_id, self.pid))
+        if not has_lang(self.lang):
+            raise SystemError('Unsupported language: {}'.format(self.lang))
+        self.config = read_config(config_file, self.lang)
+
+    async def do_submission(self):
+        # loop = get_event_loop()
         logger.info('Submission: %s, %s, %s', self.domain_id, self.pid, self.rid)
-        cases_file_task = loop.create_task(cache_open(self.session, self.domain_id, self.pid))
+        # cases_file_task = loop.create_task(cache_open(self.session, self.domain_id, self.pid))
         package = await self.build()
-        with await cases_file_task as cases_file:
-            await self.judge(cases_file, package)
+        # with await cases_file_task as cases_file:
+        await self.judge(package)
 
     async def do_pretest(self):
-        loop = get_event_loop()
+        # loop = get_event_loop()
         logger.info('Pretest: %s, %s, %s', self.domain_id, self.pid, self.rid)
-        cases_data_task = loop.create_task(self.session.record_pretest_data(self.rid))
+        # cases_data_task = loop.create_task(self.session.record_pretest_data(self.rid))
         package = await self.build()
-        with BytesIO(await cases_data_task) as cases_file:
-            await self.judge(cases_file, package)
+        # with BytesIO(await cases_data_task) as cases_file:
+        await self.judge(package)
 
     async def build(self):
         self.next(status=STATUS_COMPILING)
-        package, message, _, _ = await shield(build(self.lang, self.code.encode()))
+        package, message, _, _ = await shield(
+            build(self.lang, self.code, self.code_type, self.config.get('lang')))
         self.next(compiler_text=message)
         if not package:
             logger.debug('Compile error: %s', message)
             raise CompileError(message)
         return package
 
-    async def judge(self, cases_file, package):
+    async def judge(self, package):
         loop = get_event_loop()
         self.next(status=STATUS_JUDGING, progress=0)
-        cases = list(read_cases(cases_file))
+        cases = list(self.config['cases'])
         total_status = STATUS_ACCEPTED
         total_score = 0
         total_time_usage_ns = 0
@@ -129,6 +152,7 @@ class JudgeHandler:
     def end(self, **kwargs):
         self.ws.send_json({'key': 'end', 'tag': self.tag, **kwargs})
 
+
 async def update_problem_data(session):
     logger.info('Update problem data')
     result = await session.judge_datalist(config.get('last_update_at', 0))
@@ -138,15 +162,18 @@ async def update_problem_data(session):
     config['last_update_at'] = result['time']
     await save_config()
 
+
 async def do_judge(session):
     await update_problem_data(session)
     await session.judge_consume(JudgeHandler)
+
 
 async def do_noop(session):
     while True:
         await sleep(3600)
         logger.info('Updating session')
         await session.judge_noop()
+
 
 async def daemon():
     try_init_cgroup()
@@ -164,6 +191,7 @@ async def daemon():
                 logger.exception(e)
             logger.info('Retrying after %d seconds', RETRY_DELAY_SEC)
             await sleep(RETRY_DELAY_SEC)
+
 
 if __name__ == '__main__':
     get_event_loop().run_until_complete(daemon())
