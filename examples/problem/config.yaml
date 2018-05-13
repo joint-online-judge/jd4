@@ -17,6 +17,7 @@ cases:
 - <<: *default
   input: case0.in
   output: case0.out
+  execute_args: -abcd --aaaa bbbb
 - <<: *default
   input: case1.in
   output: case1.out
