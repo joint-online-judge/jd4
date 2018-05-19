@@ -311,11 +311,14 @@ def read_cases(file):
     raise FormatError('config file not found')
 
 
-def read_yaml_cases(cases, open):
+def read_yaml_cases(cases, judge_category, open):
     for case in cases:
         execute_args = case.get('execute_args')
         if execute_args:
             execute_args = shlex.split(execute_args)
+        category = case.get('category')
+        if category and category not in judge_category:
+            continue
         if 'judge' not in case:
             yield DefaultCase(partial(open, case['input']),
                               partial(open, case['output']),
@@ -331,7 +334,7 @@ def read_yaml_cases(cases, open):
                                   path.splitext(case['judge'])[1][1:])
 
 
-def read_yaml_config(config, lang, open):
+def read_yaml_config(config, lang, judge_category, open):
     data = yaml.safe_load(config)
     data['lang'] = None
     # if not has_lang(lang):
@@ -350,11 +353,11 @@ def read_yaml_config(config, lang, open):
             _lang['execute_args'] = shlex.split(_lang['execute_args'])
         data['lang'] = _lang
         break
-    data['cases'] = read_yaml_cases(data.get('cases'), open)
+    data['cases'] = read_yaml_cases(data.get('cases'), judge_category, open)
     return data
 
 
-def read_config(file, lang):
+def read_config(file, lang, judge_category):
     zip_file = ZipFile(file)
     canonical_dict = dict((name.lower(), name)
                           for name in zip_file.namelist())
@@ -367,7 +370,7 @@ def read_config(file, lang):
 
     try:
         config = open('config.yaml')
-        return read_yaml_config(config, lang, open)
+        return read_yaml_config(config, lang, judge_category, open)
     except FileNotFoundError:
         pass
     raise FormatError('config file not found')

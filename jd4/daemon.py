@@ -46,6 +46,7 @@ class JudgeHandler:
         self.rid = self.request.pop('rid')
         self.lang = self.request.pop('lang')
         self.code_type = self.request.pop('code_type')
+        self.judge_category = self.request.pop('judge_category').split(',')
         if self.code_type == CODE_TYPE_TEXT:
             self.code = self.request.pop('code').encode()
         else:
@@ -85,7 +86,7 @@ class JudgeHandler:
             cache_open(self.session, self.domain_id, self.pid))
         if not has_lang(self.lang):
             raise SystemError('Unsupported language: {}'.format(self.lang))
-        self.config = read_config(config_file, self.lang)
+        self.config = read_config(config_file, self.lang, self.judge_category)
 
     async def do_submission(self):
         # loop = get_event_loop()
