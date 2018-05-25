@@ -59,14 +59,19 @@ class Package:
     def __del__(self):
         rmtree(self.package_dir)
 
-    async def install(self, sandbox):
+    async def install(self, sandbox, execute_args=None):
+        if execute_args:
+            execute_args = self.execute_args + execute_args
+        else:
+            execute_args = self.execute_args
         loop = get_event_loop()
         await sandbox.reset()
         await loop.run_in_executor(None,
                                    copytree,
                                    path.join(self.package_dir, 'package'),
                                    path.join(sandbox.in_dir, 'package'))
-        return Executable(self.execute_file, self.execute_args)
+        return Executable(self.execute_file, execute_args)
+
 
 
 class Compiler:

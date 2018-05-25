@@ -31,17 +31,18 @@ PROCESS_LIMIT = 64
 
 
 class CaseBase:
-    def __init__(self, time_limit_ns, memory_limit_bytes, process_limit, score):
+    def __init__(self, time_limit_ns, memory_limit_bytes, process_limit, score, execute_args=None):
         self.time_limit_ns = time_limit_ns
         self.memory_limit_bytes = memory_limit_bytes
         self.process_limit = process_limit
         self.score = score
+        self.execute_args = execute_args
 
     async def judge(self, package):
         loop = get_event_loop()
         sandbox, = await get_sandbox(1)
         try:
-            executable = await package.install(sandbox)
+            executable = await package.install(sandbox, self.execute_args)
             stdin_file = path.join(sandbox.in_dir, 'stdin')
             mkfifo(stdin_file)
             stdout_file = path.join(sandbox.in_dir, 'stdout')
@@ -100,8 +101,8 @@ def dos2unix(src, dst):
 
 
 class DefaultCase(CaseBase):
-    def __init__(self, open_input, open_output, time_ns, memory_bytes, score):
-        super().__init__(time_ns, memory_bytes, PROCESS_LIMIT, score)
+    def __init__(self, open_input, open_output, time_ns, memory_bytes, score, execute_args=None):
+        super().__init__(time_ns, memory_bytes, PROCESS_LIMIT, score, execute_args)
         self.open_input = open_input
         self.open_output = open_output
 
@@ -310,14 +311,21 @@ def read_cases(file):
     raise FormatError('config file not found')
 
 
-def read_yaml_cases(cases, open):
+def read_yaml_cases(cases, judge_category, open):
     for case in cases:
+        execute_args = case.get('execute_args')
+        if execute_args:
+            execute_args = shlex.split(execute_args)
+        category = case.get('category')
+        if category and category not in judge_category:
+            continue
         if 'judge' not in case:
             yield DefaultCase(partial(open, case['input']),
                               partial(open, case['output']),
                               parse_time_ns(case['time']),
                               parse_memory_bytes(case['memory']),
-                              int(case['score']))
+                              int(case['score']),
+                              execute_args)
         else:
             yield CustomJudgeCase(partial(open, case['input']),
                                   parse_time_ns(case['time']),
@@ -326,7 +334,7 @@ def read_yaml_cases(cases, open):
                                   path.splitext(case['judge'])[1][1:])
 
 
-def read_yaml_config(config, lang, open):
+def read_yaml_config(config, lang, judge_category, open):
     data = yaml.safe_load(config)
     data['lang'] = None
     # if not has_lang(lang):
@@ -345,11 +353,11 @@ def read_yaml_config(config, lang, open):
             _lang['execute_args'] = shlex.split(_lang['execute_args'])
         data['lang'] = _lang
         break
-    data['cases'] = read_yaml_cases(data.get('cases'), open)
+    data['cases'] = read_yaml_cases(data.get('cases'), judge_category, open)
     return data
 
 
-def read_config(file, lang):
+def read_config(file, lang, judge_category):
     zip_file = ZipFile(file)
     canonical_dict = dict((name.lower(), name)
                           for name in zip_file.namelist())
@@ -362,7 +370,7 @@ def read_config(file, lang):
 
     try:
         config = open('config.yaml')
-        return read_yaml_config(config, lang, open)
+        return read_yaml_config(config, lang, judge_category, open)
     except FileNotFoundError:
         pass
     raise FormatError('config file not found')
