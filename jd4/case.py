@@ -334,7 +334,9 @@ def read_yaml_cases(cases, judge_category, open):
                                   path.splitext(case['judge'])[1][1:])
 
 
-def read_yaml_config(config, lang, judge_category, open):
+def read_yaml_config(config, lang, judge_category, ops):
+    open    = ops["open"]
+    extract = ops["extract"]
     data = yaml.safe_load(config)
     data['lang'] = None
     # if not has_lang(lang):
@@ -354,6 +356,12 @@ def read_yaml_config(config, lang, judge_category, open):
         data['lang'] = _lang
         break
     data['cases'] = read_yaml_cases(data.get('cases'), judge_category, open)
+    # support for injecting other files:
+    if 'compile_time_files' in data:
+        logger.info("Need to inject compile time files at '%s'", data['compile_time_files'])
+        data['compile_time_files'] = partial(extract, data['compile_time_files'])
+    if 'runtime_files' in data:
+        data['runtime_files'] = partial(extract, data['runtime_files'])
     return data
 
 
@@ -368,9 +376,22 @@ def read_config(file, lang, judge_category):
         except KeyError:
             raise FileNotFoundError(name) from None
 
+    def extractdir(name, dest):
+        if name.lower() not in canonical_dict:
+            raise FileNotFoundError(name) from None
+        for file in canonical_dict:
+            if file.startswith(name.lower()):
+                logger.info("Extracting '%s'", canonical_dict[file])
+                zip_file.extract(canonical_dict[file], path=dest)
+
+    ops = {
+        "open"    : open,
+        "extract" : extractdir
+    }
+
     try:
         config = open('config.yaml')
-        return read_yaml_config(config, lang, judge_category, open)
+        return read_yaml_config(config, lang, judge_category, ops)
     except FileNotFoundError:
         pass
     raise FormatError('config file not found')

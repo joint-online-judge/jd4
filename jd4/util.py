@@ -2,7 +2,7 @@ import re
 from asyncio import get_event_loop, StreamReader, StreamReaderProtocol
 from os import fdopen, listdir, open as os_open, path, remove, waitpid, rename, rmdir, \
     O_RDONLY, O_NONBLOCK, WEXITSTATUS, WIFSIGNALED, WNOHANG, WTERMSIG
-from shutil import rmtree
+from shutil import rmtree, copytree, copy2, move
 import tarfile
 
 from jd4.error import FormatError
@@ -86,4 +86,13 @@ def extract_tar_file(tmp_dir, sandbox_dir):
     with tarfile.open(file_path) as t:
         t.extractall(path=sandbox_dir)
     remove(file_path)
-    rmdir(tmp_dir)
+    # rmdir(tmp_dir)
+
+
+def movetree(src, dst):
+    # requires both src and dest to exist
+    for item in listdir(src):
+        s = path.join(src, item)
+        d = path.join(dst, item)
+        move(s, d)
+    rmdir(src)

@@ -13,7 +13,7 @@ from jd4.log import logger
 from jd4.pool import get_sandbox, put_sandbox
 from jd4.sandbox import SANDBOX_COMPILE, SANDBOX_EXECUTE
 from jd4.util import parse_memory_bytes, parse_time_ns, \
-    read_pipe, write_binary_file, extract_tar_file
+    read_pipe, write_binary_file, extract_tar_file, movetree
 
 _MAX_OUTPUT = 8192
 DEFAULT_TIME = '20s'
@@ -96,10 +96,18 @@ class Compiler:
                                        path.join(sandbox.in_dir, self.code_file),
                                        code)
         elif code_type == CODE_TYPE_TAR:
+            # The two calls must not be exchanged!
+            # the first call deletes the tar file
+            # the second call moves the injected compile-time files in place
+            # then it deletes the directory
             await loop.run_in_executor(None,
                                        extract_tar_file,
                                        code,
                                        sandbox.in_dir)
+            await loop.run_in_executor(None,
+                                       movetree,
+                                       code,
+                                       path.join(sandbox.in_dir))
 
     async def build(self, sandbox, *, output_file=None, cgroup_file=None, lang_config=None):
         lang_config = lang_config or {}
