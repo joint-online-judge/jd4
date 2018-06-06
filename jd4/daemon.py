@@ -87,6 +87,13 @@ class JudgeHandler:
         if not has_lang(self.lang):
             raise SystemError('Unsupported language: {}'.format(self.lang))
         self.config = read_config(config_file, self.lang, self.judge_category)
+        if 'compile_time_files' in self.config:
+            # extract the files to compile directory
+            if self.code_type != CODE_TYPE_TEXT:
+                logger.info("Extracting compile time to code dir '%s'", self.code)
+                self.config['compile_time_files'](self.code)
+            else:
+                logger.warn('Text submission does not support compile time files.')
 
     async def do_submission(self):
         # loop = get_event_loop()
