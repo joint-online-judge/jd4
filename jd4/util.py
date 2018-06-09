@@ -1,8 +1,9 @@
 import re
 from asyncio import get_event_loop, StreamReader, StreamReaderProtocol
-from os import fdopen, listdir, open as os_open, path, remove, waitpid, rename, rmdir, \
+from os import fdopen, listdir, open as os_open, path, remove, waitpid, rename, rmdir, chmod, \
     O_RDONLY, O_NONBLOCK, WEXITSTATUS, WIFSIGNALED, WNOHANG, WTERMSIG
 from shutil import rmtree, copytree, copy2, move
+import stat
 import tarfile
 
 from jd4.error import FormatError
@@ -85,6 +86,10 @@ def extract_tar_file(tmp_dir, sandbox_dir):
     file_path = path.join(tmp_dir, 'code')
     with tarfile.open(file_path) as t:
         t.extractall(path=sandbox_dir)
+    for file in listdir(sandbox_dir):
+        _path = path.join(sandbox_dir, file)
+        if path.isfile(_path):
+            chmod(_path, stat.S_IROTH | stat.S_IRGRP | stat.S_IRUSR)
     remove(file_path)
     # rmdir(tmp_dir)
 
