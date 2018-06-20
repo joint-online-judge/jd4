@@ -46,7 +46,8 @@ class JudgeHandler:
         self.rid = self.request.pop('rid')
         self.lang = self.request.pop('lang')
         self.code_type = self.request.pop('code_type')
-        self.judge_category = self.request.pop('judge_category').split(',')
+        self.judge_category = self.request.pop('judge_category')
+        self.judge_category = self.judge_category and self.judge_category.split(',') or []
         if self.code_type == CODE_TYPE_TEXT:
             self.code = self.request.pop('code').encode()
         else:

@@ -312,12 +312,13 @@ def read_cases(file):
 
 
 def read_yaml_cases(cases, judge_category, open):
+    judge_category = judge_category or ['pretest']
     for case in cases:
         execute_args = case.get('execute_args')
         if execute_args:
             execute_args = shlex.split(execute_args)
-        category = case.get('category')
-        if category and category not in judge_category:
+        category = case.get('category') or 'pretest'
+        if category not in judge_category:
             continue
         if 'judge' not in case:
             yield DefaultCase(partial(open, case['input']),
