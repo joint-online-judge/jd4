@@ -82,14 +82,20 @@ def parse_memory_bytes(memory_str):
     return int(float(match.group(1)) * MEMORY_UNITS[match.group(2)])
 
 
+def chmod_recursive(_dir, mode):
+    for file in listdir(_dir):
+        _path = path.join(_dir, file)
+        if path.isfile(_path):
+            chmod(_path, mode)
+        elif path.isdir(_path):
+            chmod_recursive(_path, mode)
+
+
 def extract_tar_file(tmp_dir, sandbox_dir):
     file_path = path.join(tmp_dir, 'code')
     with tarfile.open(file_path) as t:
         t.extractall(path=sandbox_dir)
-    for file in listdir(sandbox_dir):
-        _path = path.join(sandbox_dir, file)
-        if path.isfile(_path):
-            chmod(_path, stat.S_IROTH | stat.S_IRGRP | stat.S_IRUSR)
+    chmod_recursive(sandbox_dir, stat.S_IROTH | stat.S_IRGRP | stat.S_IRUSR)
     remove(file_path)
     # rmdir(tmp_dir)
 
