@@ -20,7 +20,7 @@ from jd4.pool import get_sandbox, put_sandbox
 from jd4.status import STATUS_ACCEPTED, STATUS_WRONG_ANSWER, \
     STATUS_TIME_LIMIT_EXCEEDED, STATUS_MEMORY_LIMIT_EXCEEDED, \
     STATUS_RUNTIME_ERROR, STATUS_SYSTEM_ERROR
-from jd4.util import read_pipe, parse_memory_bytes, parse_time_ns
+from jd4.util import read_pipe, parse_memory_bytes, parse_time_ns, movetree
 from jd4.log import logger
 
 CHUNK_SIZE = 32768
@@ -118,6 +118,7 @@ class DefaultCase(CaseBase):
             return compare_stream(ans, out)
 
 
+# not supported
 class CustomJudgeCase:
     def __init__(self, open_input, time_ns, memory_bytes, open_judge, judge_lang):
         self.open_input = open_input
@@ -336,7 +337,7 @@ def read_yaml_cases(cases, judge_category, open):
 
 
 def read_yaml_config(config, lang, judge_category, ops):
-    open    = ops["open"]
+    open = ops["open"]
     extract = ops["extract"]
     data = yaml.safe_load(config)
     data['lang'] = None
@@ -359,9 +360,10 @@ def read_yaml_config(config, lang, judge_category, ops):
     data['cases'] = read_yaml_cases(data.get('cases'), judge_category, open)
     # support for injecting other files:
     if 'compile_time_files' in data:
-        logger.info("Need to inject compile time files at '%s'", data['compile_time_files'])
+        # logger.info("Need to inject compile time files at '%s'", data['compile_time_files'])
         data['compile_time_files'] = partial(extract, data['compile_time_files'])
     if 'runtime_files' in data:
+        # logger.info("Need to inject runtime files at '%s'", data['runtime_files'])
         data['runtime_files'] = partial(extract, data['runtime_files'])
     return data
 
@@ -377,17 +379,19 @@ def read_config(file, lang, judge_category):
         except KeyError:
             raise FileNotFoundError(name) from None
 
-    def extractdir(name, dest):
+    def extractdir(name, dest, subfolder=True):
         if name.lower() not in canonical_dict:
             raise FileNotFoundError(name) from None
         for file in canonical_dict:
             if file.startswith(name.lower()):
-                logger.info("Extracting '%s'", canonical_dict[file])
+                # logger.info("Extracting '%s'", canonical_dict[file])
                 zip_file.extract(canonical_dict[file], path=dest)
+        if not subfolder:
+            movetree(path.join(dest, name), dest)
 
     ops = {
-        "open"    : open,
-        "extract" : extractdir
+        "open": open,
+        "extract": extractdir
     }
 
     try:
