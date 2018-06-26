@@ -13,7 +13,7 @@ from jd4.log import logger
 from jd4.pool import get_sandbox, put_sandbox
 from jd4.sandbox import SANDBOX_COMPILE, SANDBOX_EXECUTE
 from jd4.util import parse_memory_bytes, parse_time_ns, \
-    read_pipe, write_binary_file, extract_tar_file, movetree
+    read_pipe, write_binary_file, extract_tar_file
 
 _MAX_OUTPUT = 8192
 DEFAULT_TIME = '20s'
@@ -73,7 +73,6 @@ class Package:
         return Executable(self.execute_file, execute_args)
 
 
-
 class Compiler:
     def __init__(self,
                  compiler_file,
@@ -87,7 +86,7 @@ class Compiler:
         self.execute_file = execute_file
         self.execute_args = execute_args
 
-    async def prepare(self, sandbox, code, code_type):
+    async def prepare(self, sandbox, code, code_type, config):
         loop = get_event_loop()
         await sandbox.reset()
         if code_type == CODE_TYPE_TEXT:
@@ -96,21 +95,19 @@ class Compiler:
                                        path.join(sandbox.in_dir, self.code_file),
                                        code)
         elif code_type == CODE_TYPE_TAR:
-            # The two calls must not be exchanged!
-            # the first call deletes the tar file
-            # the second call moves the injected compile-time files in place
-            # then it deletes the directory
             await loop.run_in_executor(None,
                                        extract_tar_file,
                                        code,
                                        sandbox.in_dir)
-            await loop.run_in_executor(None,
-                                       movetree,
-                                       code,
-                                       path.join(sandbox.in_dir))
 
-    async def build(self, sandbox, *, output_file=None, cgroup_file=None, lang_config=None):
-        lang_config = lang_config or {}
+        if 'compile_time_files' in config:
+            logger.info("Extracting compile time files to sandbox %s", sandbox.in_dir)
+            await loop.run_in_executor(None,
+                                       config['compile_time_files'],
+                                       sandbox.in_dir)
+
+    async def build(self, sandbox, *, output_file=None, cgroup_file=None, config=None):
+        lang_config = config.get('lang') or {}
         loop = get_event_loop()
         compiler_file = lang_config.get('compiler_file') or self.compiler_file
         compiler_args = lang_config.get('compiler_args') or self.compiler_args
@@ -121,6 +118,12 @@ class Compiler:
                                     cgroup_file)
         if status:
             return None, status
+        if 'runtime_files' in config:
+            logger.info("Extracting runtime files to sandbox %s", sandbox.out_dir)
+            await loop.run_in_executor(None,
+                                       config['runtime_files'],
+                                       sandbox.out_dir,
+                                       False)
         package_dir = mkdtemp(prefix='jd4.package.')
         await loop.run_in_executor(None,
                                    copytree,
@@ -151,11 +154,11 @@ async def _compiler_build(compiler,
                           process_limit,
                           code,
                           code_type,
-                          lang_config):
+                          config):
     loop = get_event_loop()
     sandbox, = await get_sandbox(1)
     try:
-        await compiler.prepare(sandbox, code, code_type)
+        await compiler.prepare(sandbox, code, code_type, config)
         output_file = path.join(sandbox.in_dir, 'output')
         mkfifo(output_file)
         with socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK) as cgroup_sock:
@@ -165,7 +168,7 @@ async def _compiler_build(compiler,
                 sandbox,
                 output_file='/in/output',
                 cgroup_file='/in/cgroup',
-                lang_config=lang_config))
+                config=config))
             others_task = gather(read_pipe(output_file, _MAX_OUTPUT),
                                  wait_cgroup(cgroup_sock,
                                              build_task,
@@ -185,11 +188,11 @@ async def _interpreter_build(interpreter, code, code_type):
     return interpreter.build(code, code_type), '', 0, 0
 
 
-async def build(lang, code, code_type=CODE_TYPE_TEXT, lang_config=None):
+async def build(lang, code, code_type=CODE_TYPE_TEXT, config=None):
     build_fn = _langs.get(lang)
     if not build_fn:
         raise SystemError('Unsupported language: {}'.format(lang))
-    return await build_fn(code, code_type, lang_config)
+    return await build_fn(code, code_type, config)
 
 
 def has_lang(lang):

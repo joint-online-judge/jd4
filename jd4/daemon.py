@@ -53,8 +53,8 @@ class JudgeHandler:
         else:
             self.code = path.join(mkdtemp(prefix='jd4.code.'))
             await self.session.record_code_data(self.rid, path.join(self.code, 'code'))
+            logger.info('code dir: %s', self.code)
 
-        logger.info('code dir: %s', self.code)
         # TODO(tc-imba) pretest not supported
 
         try:
@@ -88,13 +88,6 @@ class JudgeHandler:
         if not has_lang(self.lang):
             raise SystemError('Unsupported language: {}'.format(self.lang))
         self.config = read_config(config_file, self.lang, self.judge_category)
-        if 'compile_time_files' in self.config:
-            # extract the files to compile directory
-            if self.code_type != CODE_TYPE_TEXT:
-                logger.info("Extracting compile time to code dir '%s'", self.code)
-                self.config['compile_time_files'](self.code)
-            else:
-                logger.warn('Text submission does not support compile time files.')
 
     async def do_submission(self):
         # loop = get_event_loop()
@@ -115,7 +108,7 @@ class JudgeHandler:
     async def build(self):
         self.next(status=STATUS_COMPILING)
         package, message, _, _ = await shield(
-            build(self.lang, self.code, self.code_type, self.config.get('lang')))
+            build(self.lang, self.code, self.code_type, self.config))
         self.next(compiler_text=message)
         if not package:
             logger.debug('Compile error: %s', message)

@@ -1,6 +1,6 @@
 import re
 from asyncio import get_event_loop, StreamReader, StreamReaderProtocol
-from os import fdopen, listdir, open as os_open, path, remove, waitpid, rename, rmdir, chmod, \
+from os import fdopen, listdir, open as os_open, path, remove, waitpid, walk, rmdir, chmod, \
     O_RDONLY, O_NONBLOCK, WEXITSTATUS, WIFSIGNALED, WNOHANG, WTERMSIG
 from shutil import rmtree, copytree, copy2, move
 import stat
@@ -97,7 +97,7 @@ def extract_tar_file(tmp_dir, sandbox_dir):
         t.extractall(path=sandbox_dir)
     chmod_recursive(sandbox_dir, stat.S_IROTH | stat.S_IRGRP | stat.S_IRUSR)
     remove(file_path)
-    # rmdir(tmp_dir)
+    rmdir(tmp_dir)
 
 
 def movetree(src, dst):
