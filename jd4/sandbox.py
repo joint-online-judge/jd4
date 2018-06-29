@@ -90,7 +90,7 @@ def _handle_execute(execute_file,
                     cgroup_file):
     pid = fork()
     if not pid:
-        chdir('/in/package')
+        chdir('/out/package')
         if stdin_file:
             fd = os_open(stdin_file, O_RDONLY)
             dup2(fd, STDIN_FILENO)
