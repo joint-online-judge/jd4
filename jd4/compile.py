@@ -69,7 +69,7 @@ class Package:
         await loop.run_in_executor(None,
                                    copytree,
                                    path.join(self.package_dir, 'package'),
-                                   path.join(sandbox.in_dir, 'package'))
+                                   path.join(sandbox.out_dir, 'package'))
         return Executable(self.execute_file, execute_args)
 
 
