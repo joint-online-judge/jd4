@@ -373,25 +373,27 @@ def read_config(file, lang, judge_category):
     canonical_dict = dict((name.lower(), name)
                           for name in zip_file.namelist())
 
-    def open(name):
+    def _open(name):
         try:
             return zip_file.open(canonical_dict[name.lower()])
         except KeyError:
             raise FileNotFoundError(name) from None
 
-    def extractdir(name, dest, subfolder=True):
-        if name.lower() not in canonical_dict:
+    def _extract(name, dest, subfolder=True):
+        file_found = False
+        for compressed_file in canonical_dict:
+            if compressed_file.startswith(name.lower()):
+                # logger.info("Extracting '%s'", canonical_dict[compressed_file])
+                zip_file.extract(canonical_dict[compressed_file], path=dest)
+                file_found = True
+        if not file_found:
             raise FileNotFoundError(name) from None
-        for file in canonical_dict:
-            if file.startswith(name.lower()):
-                # logger.info("Extracting '%s'", canonical_dict[file])
-                zip_file.extract(canonical_dict[file], path=dest)
         if not subfolder:
             movetree(path.join(dest, name), dest)
 
     ops = {
-        "open": open,
-        "extract": extractdir
+        "open": _open,
+        "extract": _extract
     }
 
     try:
