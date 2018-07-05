@@ -397,7 +397,7 @@ def read_config(file, lang, judge_category):
     }
 
     try:
-        config = open('config.yaml')
+        config = _open('config.yaml')
         return read_yaml_config(config, lang, judge_category, ops)
     except FileNotFoundError:
         pass
