@@ -317,7 +317,7 @@ def read_yaml_cases(cases, judge_category, open):
     for case in cases:
         execute_args = case.get('execute_args')
         if execute_args:
-            execute_args = shlex.split(execute_args)
+            execute_args = shlex.split(str(execute_args))
         category = case.get('category') or 'pretest'
         if category not in judge_category:
             continue
