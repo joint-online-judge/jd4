@@ -41,5 +41,6 @@ RUN python3 -m venv /venv && \
     cp /tmp/jd4/examples/langs.yaml /root/.config/jd4/langs.yaml && \
     rm -rf /tmp/jd4
 
+# Start the server
 CMD bash -c "source /venv/bin/activate && \
              python3 -m jd4.daemon"
