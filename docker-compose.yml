@@ -1,0 +1,20 @@
+version: "3"
+services:
+  jd4-1:
+    restart: always
+    image: jioj/jd4
+    privileged: true
+    network_mode: host
+    container_name: jd4-1
+    volumes:
+      - ./.cache/1:/root/.cache/jd4
+      - ./jd4-1.yaml:/root/.config/jd4/config.yaml
+  jd4-2:
+    restart: always
+    image: jioj/jd4
+    privileged: true
+    network_mode: host
+    container_name: jd4-2
+    volumes:
+      - ./.cache/2:/root/.cache/jd4
+      - ./jd4-2.yaml:/root/.config/jd4/config.yaml
