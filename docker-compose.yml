@@ -8,7 +8,8 @@ services:
     container_name: jd4-1
     volumes:
       - ./.cache/1:/root/.cache/jd4
-      - ./jd4-1.yaml:/root/.config/jd4/config.yaml
+    environment:
+      UNAME: judge1
   jd4-2:
     restart: always
     image: jioj/jd4
@@ -17,4 +18,5 @@ services:
     container_name: jd4-2
     volumes:
       - ./.cache/2:/root/.cache/jd4
-      - ./jd4-2.yaml:/root/.config/jd4/config.yaml
+    environment:
+      UNAME: judge2

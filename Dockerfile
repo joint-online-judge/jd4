@@ -53,5 +53,12 @@ WORKDIR /srv/jd4
 
 RUN pip3 install -r ./requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/
 
+ENV SERVER_URL="http://127.0.0.1:34765" \
+    UNAME="judge" \
+    PASSWORD="123456"
+
 # Start the server
-CMD bash -c "python3 -m jd4.daemon"
+CMD python3 -m jd4.daemon \
+    --server-url=$SERVER_URL \
+    --uname=$UNAME \
+    --password=$PASSWORD
