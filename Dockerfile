@@ -35,7 +35,7 @@ RUN apt-get install -y libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev
 
 COPY ./examples /srv/jd4/examples
 COPY ./jd4 /srv/jd4/jd4
-COPY ./requirements.txt /srv/jd4/
+COPY ./requirements.txt ./setup.py /srv/jd4/
 COPY examples/langs.yaml $HOME/.config/jd4/langs.yaml
 WORKDIR /srv/jd4
 
@@ -52,6 +52,7 @@ WORKDIR /srv/jd4
 #    rm -rf /tmp/jd4
 
 RUN pip3 install -r ./requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/
+RUN python3 setup.py build_ext --inplace
 
 ENV SERVER_URL="http://127.0.0.1:34765" \
     UNAME="judge" \
