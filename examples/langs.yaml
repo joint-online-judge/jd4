@@ -26,6 +26,20 @@ llvm-cc:
     code_file: foo.cc
     execute_file: foo
     execute_args: foo
+cmake:
+    type: compiler
+    compiler_file: /usr/bin/make
+    compiler_args: make
+    code_file: Makefile
+    execute_file: foo
+    execute_args: foo
+make:
+    type: compiler
+    compiler_file: /usr/bin/make
+    compiler_args: make
+    code_file: Makefile
+    execute_file: foo
+    execute_args: foo
 matlab:
     type: compiler
     compiler_file: /bin/cp
