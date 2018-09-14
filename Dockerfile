@@ -3,7 +3,7 @@ COPY . /tmp/jd4
 COPY ./sources.list /etc/apt/
 
 # Install the basic build essentials
-RUN apt-get update && apt-get install -y binutils build-essential cmake
+RUN apt-get update && apt-get install -y binutils build-essential cmake x11-xserver-utils
 
 # Install the supported languages
 RUN apt-get install -y \
