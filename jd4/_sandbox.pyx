@@ -17,9 +17,9 @@ cdef bind_mount(const char* src, const char* target,
     if make_node:
         mknod(target)
     if bind:
-        mount(src, target, '', MS_BIND | MS_NOSUID, NULL)
+        mount(src, target, '', MS_BIND | MS_REC | MS_NOSUID, NULL)
     if rebind_ro:
-        mount(src, target, '', MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID, NULL)
+        mount(src, target, '', MS_BIND | MS_REC | MS_REMOUNT | MS_RDONLY | MS_NOSUID, NULL)
 
 cdef bind_or_link(src, target):
     if path.islink(src):

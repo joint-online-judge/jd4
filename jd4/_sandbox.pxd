@@ -12,6 +12,7 @@ cdef extern from "sched.h":
 cdef extern from "sys/mount.h":
     cdef enum:
         MS_BIND
+        MS_REC
         MS_REMOUNT
         MS_RDONLY
         MS_NOSUID
