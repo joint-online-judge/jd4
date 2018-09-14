@@ -26,6 +26,13 @@ llvm-cc:
     code_file: foo.cc
     execute_file: foo
     execute_args: foo
+matlab:
+    type: compiler
+    compiler_file: /bin/cp
+    compiler_args: cp /in/foo.m /out/foo.m
+    code_file: foo.m
+    execute_file: /usr/local/matlab/bin/matlab
+    execute_args: matlab
 pas:
     type: compiler
     compiler_file: /usr/bin/fpc
