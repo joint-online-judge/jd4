@@ -1,7 +1,7 @@
 # cython: c_string_type=str, c_string_encoding=ascii
 
 from os import chdir, getegid, geteuid, makedirs, mkdir, mknod, path, \
-               readlink, rmdir, setresgid, setresuid, symlink
+    readlink, rmdir, setresgid, setresuid, symlink
 from socket import sethostname
 
 from jd4._sandbox cimport mount, umount2, unshare, \
@@ -10,22 +10,22 @@ from jd4._sandbox cimport mount, umount2, unshare, \
     MS_BIND, MS_REMOUNT, MS_RDONLY, MS_NOSUID
 from jd4.util import write_text_file
 
-cdef bind_mount(const char* src, const char* target,
-                bint make_dir, bint make_node, bint bind, bint rebind_ro):
+cdef bind_mount(const char*src, const char*target,
+                bint make_dir, bint make_node, bint bind, bint rebind_ro, bint rec=False):
     if make_dir:
         makedirs(target)
     if make_node:
         mknod(target)
     if bind:
-        mount(src, target, '', MS_BIND | MS_REC | MS_NOSUID, NULL)
+        mount(src, target, '', MS_BIND | (rec and MS_REC or 0) | MS_NOSUID, NULL)
     if rebind_ro:
-        mount(src, target, '', MS_BIND | MS_REC | MS_REMOUNT | MS_RDONLY | MS_NOSUID, NULL)
+        mount(src, target, '', MS_BIND | (rec and MS_REC or 0) | MS_REMOUNT | MS_RDONLY | MS_NOSUID, NULL)
 
-cdef bind_or_link(src, target):
+cdef bind_or_link(src, target, rec=False):
     if path.islink(src):
         symlink(readlink(src), target)
     elif path.isdir(src):
-        bind_mount(src, target, True, False, True, True)
+        bind_mount(src, target, True, False, True, True, rec)
 
 def create_namespace():
     host_euid = geteuid()
@@ -61,11 +61,12 @@ def enter_namespace(root_dir, in_dir, out_dir):
     bind_or_link('/usr/lib', 'usr/lib')
     bind_or_link('/usr/lib64', 'usr/lib64')
     bind_or_link('/usr/libexec', 'usr/libexec')
-    bind_or_link('/usr/share', 'usr/share')
+    bind_or_link('/usr/share', 'usr/share', True)
     bind_or_link('/usr/local', 'usr/local')
     bind_or_link('/var/lib/ghc', 'var/lib/ghc')
     bind_mount(in_dir, 'in', True, False, True, True)
     bind_mount(out_dir, 'out', True, False, True, False)
+    bind_mount('/root/.matlab', '.matlab', True, False, True, True, True)
     write_text_file('etc/passwd', 'icebox:x:1000:1000:icebox:/:/bin/bash\n')
     mkdir('old_root')
     pivot_root('.', 'old_root')

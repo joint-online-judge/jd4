@@ -43,6 +43,7 @@ class CaseBase:
         sandbox, = await get_sandbox(1)
         try:
             executable = await package.install(sandbox, self.execute_args)
+            logger.info(sandbox.in_dir)
             stdin_file = path.join(sandbox.in_dir, 'stdin')
             mkfifo(stdin_file)
             stdout_file = path.join(sandbox.in_dir, 'stdout')
@@ -61,6 +62,7 @@ class CaseBase:
                 others_task = gather(
                     loop.run_in_executor(None, self.do_input, stdin_file),
                     loop.run_in_executor(None, self.do_output, stdout_file),
+                    # read_pipe(stdout_file, MAX_STDERR_SIZE),
                     read_pipe(stderr_file, MAX_STDERR_SIZE),
                     wait_cgroup(cgroup_sock,
                                 execute_task,
@@ -86,6 +88,8 @@ class CaseBase:
             else:
                 status = STATUS_ACCEPTED
                 score = self.score
+            # print(correct)
+            # print(stderr)
             return status, score, time_usage_ns, memory_usage_bytes, stderr
         finally:
             put_sandbox(sandbox)
