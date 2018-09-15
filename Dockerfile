@@ -54,6 +54,9 @@ WORKDIR /srv/jd4
 RUN pip3 install -r ./requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/
 RUN python3 setup.py build_ext --inplace
 
+# support MATLAB in sandbox
+RUN mkdir /$HOME/.matlab && mkdir /$HOME/.matlab/R2018a
+
 ENV SERVER_URL="http://127.0.0.1:34765" \
     UNAME="judge" \
     PASSWORD="123456"
