@@ -89,7 +89,7 @@ class CaseBase:
                 status = STATUS_ACCEPTED
                 score = self.score
             # print(correct)
-            # print(stderr)
+            print(stderr)
             return status, score, time_usage_ns, memory_usage_bytes, stderr
         finally:
             put_sandbox(sandbox)
