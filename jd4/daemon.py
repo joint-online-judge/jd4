@@ -8,11 +8,12 @@ from jd4.api import VJ4Session
 from jd4.case import read_config
 from jd4.cache import cache_open, cache_invalidate
 from jd4.cgroup import try_init_cgroup
-from jd4.compile import build, has_lang, FILE_TYPE_TEXT
+from jd4.compile import build, has_lang
 from jd4.config import config, save_config
 from jd4.log import logger
 from jd4.status import STATUS_ACCEPTED, STATUS_COMPILE_ERROR, \
     STATUS_SYSTEM_ERROR, STATUS_JUDGING, STATUS_COMPILING
+from jd4.util import FILE_TYPE_TEXT
 
 RETRY_DELAY_SEC = 3
 

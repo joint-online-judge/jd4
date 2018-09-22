@@ -4,10 +4,17 @@ from os import fdopen, listdir, open as os_open, path, remove, waitpid, walk, rm
     O_RDONLY, O_NONBLOCK, WEXITSTATUS, WIFSIGNALED, WNOHANG, WTERMSIG
 from shutil import rmtree, copytree, copy2, move
 import stat
+import rarfile
 import tarfile
 import zipfile
 
 from jd4.error import FormatError
+
+# Code type constants
+FILE_TYPE_TEXT = 0
+FILE_TYPE_TAR = 1
+FILE_TYPE_ZIP = 2
+FILE_TYPE_RAR = 3
 
 TIME_RE = re.compile(r'([0-9]+(?:\.[0-9]*)?)([mun]?)s?')
 TIME_UNITS = {'': 1000000000, 'm': 1000000, 'u': 1000, 'n': 1}
@@ -92,19 +99,33 @@ def chmod_recursive(_dir, mode):
             chmod_recursive(_path, mode)
 
 
-def extract_tar_file(tmp_dir, sandbox_dir):
-    file_path = path.join(tmp_dir, 'code')
-    with tarfile.open(file_path) as t:
-        t.extractall(path=sandbox_dir)
-    chmod_recursive(sandbox_dir, stat.S_IROTH | stat.S_IRGRP | stat.S_IRUSR)
-    remove(file_path)
-    rmdir(tmp_dir)
+def extract_tar_file(file_path, dest_dir):
+    with tarfile.TarFile(file_path) as file:
+        file.extractall(path=dest_dir)
 
 
-def extract_zip_file(tmp_dir, sandbox_dir):
+def extract_zip_file(file_path, dest_dir):
+    with zipfile.ZipFile(file_path) as file:
+        file.extractall(path=dest_dir)
+
+
+def extract_rar_file(file_path, dest_dir):
+    with rarfile.RarFile(file_path) as file:
+        file.extractall(path=dest_dir)
+
+
+EXTRACT_OPEN_FUNC = {
+    FILE_TYPE_TAR: extract_tar_file,
+    FILE_TYPE_ZIP: extract_zip_file,
+    FILE_TYPE_RAR: extract_rar_file
+}
+
+
+def extract_archive(tmp_dir, sandbox_dir, file_type):
     file_path = path.join(tmp_dir, 'code')
-    with zipfile.ZipFile(file_path) as z:
-        z.extractall(path=sandbox_dir)
+    open_func = EXTRACT_OPEN_FUNC.get(file_type)
+    if open_func:
+        open_func(file_path, sandbox_dir)
     chmod_recursive(sandbox_dir, stat.S_IROTH | stat.S_IRGRP | stat.S_IRUSR)
     remove(file_path)
     rmdir(tmp_dir)

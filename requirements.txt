@@ -3,3 +3,4 @@ appdirs
 coloredlogs
 cython
 ruamel.yaml
+rarfile

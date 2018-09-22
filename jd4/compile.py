@@ -13,7 +13,8 @@ from jd4.log import logger
 from jd4.pool import get_sandbox, put_sandbox
 from jd4.sandbox import SANDBOX_COMPILE, SANDBOX_EXECUTE
 from jd4.util import parse_memory_bytes, parse_time_ns, \
-    read_pipe, write_binary_file, extract_tar_file, extract_zip_file
+    read_pipe, write_binary_file, extract_archive, \
+    FILE_TYPE_TEXT
 
 _MAX_OUTPUT = 8192
 DEFAULT_TIME = '20s'
@@ -23,10 +24,6 @@ _CONFIG_DIR = user_config_dir('jd4')
 _LANGS_FILE = path.join(_CONFIG_DIR, 'langs.yaml')
 _langs = dict()
 
-# Code type constants
-FILE_TYPE_TEXT = 0
-FILE_TYPE_TAR = 1
-FILE_TYPE_ZIP = 2
 
 
 class Executable:
@@ -94,16 +91,12 @@ class Compiler:
                                        write_binary_file,
                                        path.join(sandbox.in_dir, self.code_file),
                                        code)
-        elif code_type == FILE_TYPE_TAR:
+        else:
             await loop.run_in_executor(None,
-                                       extract_tar_file,
+                                       extract_archive,
                                        code,
-                                       sandbox.in_dir)
-        elif code_type == FILE_TYPE_ZIP:
-            await loop.run_in_executor(None,
-                                       extract_zip_file,
-                                       code,
-                                       sandbox.in_dir)
+                                       sandbox.in_dir,
+                                       code_type)
 
         if 'compile_time_files' in config:
             logger.info("Extracting compile time files to sandbox %s", sandbox.in_dir)
