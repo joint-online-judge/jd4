@@ -13,7 +13,7 @@ from jd4.log import logger
 from jd4.pool import get_sandbox, put_sandbox
 from jd4.sandbox import SANDBOX_COMPILE, SANDBOX_EXECUTE
 from jd4.util import parse_memory_bytes, parse_time_ns, \
-    read_pipe, write_binary_file, extract_tar_file
+    read_pipe, write_binary_file, extract_tar_file, extract_zip_file
 
 _MAX_OUTPUT = 8192
 DEFAULT_TIME = '20s'
@@ -24,9 +24,9 @@ _LANGS_FILE = path.join(_CONFIG_DIR, 'langs.yaml')
 _langs = dict()
 
 # Code type constants
-CODE_TYPE_TEXT = 0
-CODE_TYPE_TAR = 1
-CODE_TYPE_ZIP = 2
+FILE_TYPE_TEXT = 0
+FILE_TYPE_TAR = 1
+FILE_TYPE_ZIP = 2
 
 
 class Executable:
@@ -89,14 +89,19 @@ class Compiler:
     async def prepare(self, sandbox, code, code_type, config):
         loop = get_event_loop()
         await sandbox.reset()
-        if code_type == CODE_TYPE_TEXT:
+        if code_type == FILE_TYPE_TEXT:
             await loop.run_in_executor(None,
                                        write_binary_file,
                                        path.join(sandbox.in_dir, self.code_file),
                                        code)
-        elif code_type == CODE_TYPE_TAR:
+        elif code_type == FILE_TYPE_TAR:
             await loop.run_in_executor(None,
                                        extract_tar_file,
+                                       code,
+                                       sandbox.in_dir)
+        elif code_type == FILE_TYPE_ZIP:
+            await loop.run_in_executor(None,
+                                       extract_zip_file,
                                        code,
                                        sandbox.in_dir)
 
@@ -188,7 +193,7 @@ async def _interpreter_build(interpreter, code, code_type):
     return interpreter.build(code, code_type), '', 0, 0
 
 
-async def build(lang, code, code_type=CODE_TYPE_TEXT, config=None):
+async def build(lang, code, code_type=FILE_TYPE_TEXT, config=None):
     build_fn = _langs.get(lang)
     if not build_fn:
         raise SystemError('Unsupported language: {}'.format(lang))

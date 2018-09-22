@@ -5,6 +5,7 @@ from os import fdopen, listdir, open as os_open, path, remove, waitpid, walk, rm
 from shutil import rmtree, copytree, copy2, move
 import stat
 import tarfile
+import zipfile
 
 from jd4.error import FormatError
 
@@ -95,6 +96,15 @@ def extract_tar_file(tmp_dir, sandbox_dir):
     file_path = path.join(tmp_dir, 'code')
     with tarfile.open(file_path) as t:
         t.extractall(path=sandbox_dir)
+    chmod_recursive(sandbox_dir, stat.S_IROTH | stat.S_IRGRP | stat.S_IRUSR)
+    remove(file_path)
+    rmdir(tmp_dir)
+
+
+def extract_zip_file(tmp_dir, sandbox_dir):
+    file_path = path.join(tmp_dir, 'code')
+    with zipfile.ZipFile(file_path) as z:
+        z.extractall(path=sandbox_dir)
     chmod_recursive(sandbox_dir, stat.S_IROTH | stat.S_IRGRP | stat.S_IRUSR)
     remove(file_path)
     rmdir(tmp_dir)

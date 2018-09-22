@@ -8,7 +8,7 @@ from jd4.api import VJ4Session
 from jd4.case import read_config
 from jd4.cache import cache_open, cache_invalidate
 from jd4.cgroup import try_init_cgroup
-from jd4.compile import build, has_lang, CODE_TYPE_TEXT
+from jd4.compile import build, has_lang, FILE_TYPE_TEXT
 from jd4.config import config, save_config
 from jd4.log import logger
 from jd4.status import STATUS_ACCEPTED, STATUS_COMPILE_ERROR, \
@@ -48,7 +48,7 @@ class JudgeHandler:
         self.code_type = self.request.pop('code_type')
         self.judge_category = self.request.pop('judge_category')
         self.judge_category = self.judge_category and self.judge_category.split(',') or []
-        if self.code_type == CODE_TYPE_TEXT:
+        if self.code_type == FILE_TYPE_TEXT:
             self.code = self.request.pop('code').encode()
         else:
             self.code = path.join(mkdtemp(prefix='jd4.code.'))
