@@ -4,16 +4,23 @@ from jd4.config import config
 from jd4.log import logger
 from jd4.sandbox import create_sandboxes
 
+
 async def get_sandbox(n):
     await _lock.acquire()
     try:
-        return await gather(*list(_queue.get() for _ in range(n)))
+        sandboxes = await gather(*list(_queue.get() for _ in range(n)))
+        for sandbox in sandboxes:
+            logger.info('Get sandbox: %s', sandbox.sandbox_dir)
+        return sandboxes
     finally:
         _lock.release()
+
 
 def put_sandbox(*sandboxes):
     for sandbox in sandboxes:
         _queue.put_nowait(sandbox)
+        logger.info('Put sandbox: %s', sandbox.sandbox_dir)
+
 
 def _init():
     parallelism = config.get('parallelism', 2)
