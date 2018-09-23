@@ -42,7 +42,6 @@ class CaseBase:
     async def judge(self, package):
         loop = get_event_loop()
         sandbox, = await get_sandbox(1)
-        logger.info('Judge case %d in %s', self.index, sandbox.sandbox_dir)
         try:
             executable = await package.install(sandbox, self.execute_args)
             stdin_file = path.join(sandbox.in_dir, 'stdin')
