@@ -1,4 +1,4 @@
-aiohttp<3
+aiohttp<=2.2.0
 appdirs
 coloredlogs
 cython
