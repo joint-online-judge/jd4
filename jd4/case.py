@@ -91,9 +91,16 @@ class CaseBase:
                 score = self.score
             # print(correct)
             # print(stderr)
-            return status, score, time_usage_ns, memory_usage_bytes, stderr
+        except Exception as e:
+            logger.exception(e)
+            status = STATUS_SYSTEM_ERROR
+            score = 0
+            time_usage_ns = 0
+            memory_usage_bytes = 0
+            stderr = ''
         finally:
             put_sandbox(sandbox)
+        return status, score, time_usage_ns, memory_usage_bytes, stderr
 
 
 def dos2unix(src, dst):

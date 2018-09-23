@@ -29,6 +29,7 @@ class JudgeHandler:
         self.ws = ws
 
     async def handle(self):
+        logger.info('Request Received, start to handle')
         event = self.request.pop('event', None)
         if not event:
             await self.do_record()
@@ -38,6 +39,7 @@ class JudgeHandler:
             logger.warning('Unknown event: %s', event)
         for key in self.request:
             logger.warning('Unused key in judge request: %s', key)
+        logger.info('Request handled')
 
     async def do_record(self):
         self.tag = self.request.pop('tag')
