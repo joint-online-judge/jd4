@@ -31,19 +31,20 @@ PROCESS_LIMIT = 64
 
 
 class CaseBase:
-    def __init__(self, time_limit_ns, memory_limit_bytes, process_limit, score, execute_args=None):
+    def __init__(self, time_limit_ns, memory_limit_bytes, process_limit, score, execute_args=None, index=0):
         self.time_limit_ns = time_limit_ns
         self.memory_limit_bytes = memory_limit_bytes
         self.process_limit = process_limit
         self.score = score
         self.execute_args = execute_args
+        self.index = index
 
     async def judge(self, package):
         loop = get_event_loop()
         sandbox, = await get_sandbox(1)
+        logger.info('Judge case %d in %s', self.index, sandbox.sandbox_dir)
         try:
             executable = await package.install(sandbox, self.execute_args)
-            logger.info(sandbox.in_dir)
             stdin_file = path.join(sandbox.in_dir, 'stdin')
             mkfifo(stdin_file)
             stdout_file = path.join(sandbox.in_dir, 'stdout')
@@ -89,7 +90,7 @@ class CaseBase:
                 status = STATUS_ACCEPTED
                 score = self.score
             # print(correct)
-            print(stderr)
+            # print(stderr)
             return status, score, time_usage_ns, memory_usage_bytes, stderr
         finally:
             put_sandbox(sandbox)
@@ -105,8 +106,8 @@ def dos2unix(src, dst):
 
 
 class DefaultCase(CaseBase):
-    def __init__(self, open_input, open_output, time_ns, memory_bytes, score, execute_args=None):
-        super().__init__(time_ns, memory_bytes, PROCESS_LIMIT, score, execute_args)
+    def __init__(self, open_input, open_output, time_ns, memory_bytes, score, execute_args=None, index=0):
+        super().__init__(time_ns, memory_bytes, PROCESS_LIMIT, score, execute_args, index)
         self.open_input = open_input
         self.open_output = open_output
 
@@ -318,6 +319,7 @@ def read_cases(file):
 
 def read_yaml_cases(cases, judge_category, open):
     judge_category = judge_category or ['pretest']
+    index = 0
     for case in cases:
         execute_args = case.get('execute_args')
         if execute_args:
@@ -325,13 +327,15 @@ def read_yaml_cases(cases, judge_category, open):
         category = case.get('category') or 'pretest'
         if category not in judge_category:
             continue
+        index += 1
         if 'judge' not in case:
             yield DefaultCase(partial(open, case['input']),
                               partial(open, case['output']),
                               parse_time_ns(case['time']),
                               parse_memory_bytes(case['memory']),
                               int(case['score']),
-                              execute_args)
+                              execute_args,
+                              index)
         else:
             yield CustomJudgeCase(partial(open, case['input']),
                                   parse_time_ns(case['time']),

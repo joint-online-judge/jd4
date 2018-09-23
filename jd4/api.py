@@ -123,7 +123,6 @@ class VJ4Session(ClientSession):
             return await response.read()
 
     async def record_code_data(self, rid, save_path):
-        logger.info('Getting code file: %s', rid)
         loop = get_event_loop()
         async with self.get(self.full_url('records', rid, 'code'),
                             headers={'accept': 'application/json'}) as response:

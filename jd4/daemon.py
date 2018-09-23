@@ -49,12 +49,15 @@ class JudgeHandler:
         self.code_type = self.request.pop('code_type')
         self.judge_category = self.request.pop('judge_category')
         self.judge_category = self.judge_category and self.judge_category.split(',') or []
+
+        logger.info('Record: domain_id %s, pid %s, rid %s', self.domain_id, self.pid, self.rid)
+
         if self.code_type == FILE_TYPE_TEXT:
             self.code = self.request.pop('code').encode()
         else:
             self.code = path.join(mkdtemp(prefix='jd4.code.'))
+            logger.info('Saving code file in %s', self.code)
             await self.session.record_code_data(self.rid, path.join(self.code, 'code'))
-            logger.info('code dir: %s', self.code)
 
         # TODO(tc-imba) pretest not supported
 
@@ -92,7 +95,6 @@ class JudgeHandler:
 
     async def do_submission(self):
         # loop = get_event_loop()
-        logger.info('Submission: %s, %s, %s', self.domain_id, self.pid, self.rid)
         # cases_file_task = loop.create_task(cache_open(self.session, self.domain_id, self.pid))
         package = await self.build()
         # with await cases_file_task as cases_file:
@@ -107,6 +109,7 @@ class JudgeHandler:
         await self.judge(package)
 
     async def build(self):
+        logger.info('Build started, language: %s', self.lang)
         self.next(status=STATUS_COMPILING)
         package, message, _, _ = await shield(
             build(self.lang, self.code, self.code_type, self.config))
@@ -114,12 +117,14 @@ class JudgeHandler:
         if not package:
             logger.debug('Compile error: %s', message)
             raise CompileError(message)
+        logger.info('Build successfully')
         return package
 
     async def judge(self, package):
+        cases = list(self.config['cases'])
+        logger.info('Judge started, cases count: %d', len(cases))
         loop = get_event_loop()
         self.next(status=STATUS_JUDGING, progress=0)
-        cases = list(self.config['cases'])
         total_status = STATUS_ACCEPTED
         total_score = 0
         total_time_usage_ns = 0
@@ -144,6 +149,7 @@ class JudgeHandler:
             total_score += score
             total_time_usage_ns += time_usage_ns
             total_memory_usage_bytes = max(total_memory_usage_bytes, memory_usage_bytes)
+        logger.info('Judge successfully')
         self.end(status=total_status,
                  score=total_score,
                  time_ms=total_time_usage_ns // 1000000,
