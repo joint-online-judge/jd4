@@ -9,8 +9,8 @@ async def get_sandbox(n):
     await _lock.acquire()
     try:
         sandboxes = await gather(*list(_queue.get() for _ in range(n)))
-        for sandbox in sandboxes:
-            logger.info('Get sandbox: %s', sandbox.sandbox_dir)
+        # for sandbox in sandboxes:
+        #     logger.info('Get sandbox: %s', sandbox.sandbox_dir)
         return sandboxes
     finally:
         _lock.release()
@@ -19,7 +19,7 @@ async def get_sandbox(n):
 def put_sandbox(*sandboxes):
     for sandbox in sandboxes:
         _queue.put_nowait(sandbox)
-        logger.info('Put sandbox: %s', sandbox.sandbox_dir)
+        # logger.info('Put sandbox: %s', sandbox.sandbox_dir)
 
 
 def _init():

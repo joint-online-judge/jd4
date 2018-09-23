@@ -40,10 +40,10 @@ class Sandbox:
 
     async def reset(self):
         loop = get_event_loop()
-        await loop.run_in_executor(None, remove_under, self.in_dir, self.out_dir)
-        await self.call(SANDBOX_RESET_CHILD)
-        # await gather(loop.run_in_executor(None, remove_under, self.in_dir, self.out_dir),
-        #              self.call(SANDBOX_RESET_CHILD))
+        # await loop.run_in_executor(None, remove_under, self.in_dir, self.out_dir)
+        # await self.call(SANDBOX_RESET_CHILD)
+        await gather(loop.run_in_executor(None, remove_under, self.in_dir, self.out_dir),
+                     self.call(SANDBOX_RESET_CHILD))
 
     async def call(self, command, *args):
         pickle.dump((command, *args), self.writer)
