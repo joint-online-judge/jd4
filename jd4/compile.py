@@ -92,6 +92,7 @@ class Compiler:
                                        path.join(sandbox.in_dir, self.code_file),
                                        code)
         else:
+            logger.info("Extracting submitted files into sandbox %s", sandbox.in_dir)
             await loop.run_in_executor(None,
                                        extract_archive,
                                        code,
@@ -99,7 +100,7 @@ class Compiler:
                                        code_type)
 
         if 'compile_time_files' in config:
-            logger.info("Extracting compile time files to sandbox %s", sandbox.in_dir)
+            logger.info("Extracting compile time files into sandbox %s", sandbox.in_dir)
             await loop.run_in_executor(None,
                                        config['compile_time_files'],
                                        sandbox.in_dir)

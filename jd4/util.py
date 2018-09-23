@@ -100,7 +100,7 @@ def chmod_recursive(_dir, mode):
 
 
 def extract_tar_file(file_path, dest_dir):
-    with tarfile.TarFile(file_path) as file:
+    with tarfile.open(file_path) as file:
         file.extractall(path=dest_dir)
 
 

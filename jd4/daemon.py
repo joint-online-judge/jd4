@@ -56,6 +56,7 @@ class JudgeHandler:
             self.code = self.request.pop('code').encode()
         else:
             self.code = path.join(mkdtemp(prefix='jd4.code.'))
+            self.request.pop('code')
             logger.info('Saving code file in %s', self.code)
             await self.session.record_code_data(self.rid, path.join(self.code, 'code'))
 
