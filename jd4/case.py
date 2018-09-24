@@ -91,6 +91,7 @@ class CaseBase:
                 score = self.score
             # print(correct)
             # print(stderr)
+            logger.info('stderr: %s', str(stderr))
         except Exception as e:
             logger.exception(e)
             status = STATUS_SYSTEM_ERROR
