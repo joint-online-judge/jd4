@@ -137,17 +137,19 @@ class JudgeHandler:
             judge_tasks.append(loop.create_task(case.judge(package)))
         for index, judge_task in enumerate(judge_tasks):
             # logger.info('Judge case %d start', index)
-            status, score, time_usage_ns, memory_usage_bytes, stderr = await shield(judge_task)
-            if self.type == 1:
-                judge_text = stderr.decode(encoding='utf-8', errors='replace')
-            else:
-                judge_text = ''
+            status, score, time_usage_ns, memory_usage_bytes, stderr, execute_status = await shield(judge_task)
+            # if self.type == 1:
+            #     judge_text = stderr.decode(encoding='utf-8', errors='replace')
+            # else:
+            #     judge_text = ''
+            judge_text = stderr.decode(encoding='utf-8', errors='replace')
             self.next(status=STATUS_JUDGING,
                       case={'status': status,
                             'score': score,
                             'time_ms': time_usage_ns // 1000000,
                             'memory_kb': memory_usage_bytes // 1024,
-                            'judge_text': judge_text},
+                            'judge_text': judge_text,
+                            'execute_status': execute_status},
                       progress=(index + 1) * 100 // len(cases))
             total_status = max(total_status, status)
             total_score += score

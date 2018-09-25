@@ -99,9 +99,10 @@ class CaseBase:
             time_usage_ns = 0
             memory_usage_bytes = 0
             stderr = ''
+            execute_status = 0
         finally:
             put_sandbox(sandbox)
-        return status, score, time_usage_ns, memory_usage_bytes, stderr
+        return status, score, time_usage_ns, memory_usage_bytes, stderr, execute_status
 
 
 def dos2unix(src, dst):
