@@ -2,6 +2,9 @@ other:
     type: compiler
     compiler_file: /bin/bash
     compiler_args: bash
+    code_file: foo.sh
+    execute_file: foo
+    execute_args: foo
 c:
     type: compiler
     compiler_file: /usr/bin/gcc
