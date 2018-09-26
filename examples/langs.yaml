@@ -1,3 +1,7 @@
+other:
+    type: compiler
+    compiler_file: /bin/bash
+    compiler_args: bash
 c:
     type: compiler
     compiler_file: /usr/bin/gcc
