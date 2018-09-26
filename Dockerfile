@@ -8,7 +8,7 @@ ENV HOME="/root"
 
 # Install the basic build essentials
 COPY ./sources.list /etc/apt/
-RUN apt-get update && apt-get install -y binutils build-essential cmake x11-xserver-utils unrar
+RUN apt-get update && apt-get install -y binutils build-essential cmake x11-xserver-utils unrar ssh-client
 
 # Install the supported languages
 RUN apt-get install -y \
