@@ -62,8 +62,8 @@ class CaseBase:
                     cgroup_file='/in/cgroup'))
                 others_task = gather(
                     loop.run_in_executor(None, self.do_input, stdin_file),
-                    loop.run_in_executor(None, self.do_output, stdout_file),
-                    # read_pipe(stdout_file, MAX_STDERR_SIZE),
+                    # loop.run_in_executor(None, self.do_output, stdout_file),
+                    read_pipe(stdout_file, MAX_STDERR_SIZE),
                     read_pipe(stderr_file, MAX_STDERR_SIZE),
                     wait_cgroup(cgroup_sock,
                                 execute_task,
@@ -72,8 +72,10 @@ class CaseBase:
                                 self.memory_limit_bytes,
                                 self.process_limit))
                 execute_status = await execute_task
-                _, correct, stderr, (time_usage_ns, memory_usage_bytes) = \
+                _, stdout, stderr, (time_usage_ns, memory_usage_bytes) = \
                     await others_task
+                # @TODO @tc-imba not efficient
+                correct = await loop.run_in_executor(None, self.do_output_str, stdout)
             if memory_usage_bytes >= self.memory_limit_bytes:
                 status = STATUS_MEMORY_LIMIT_EXCEEDED
                 score = 0
@@ -91,7 +93,8 @@ class CaseBase:
                 score = self.score
             # print(correct)
             # print(stderr)
-            logger.info('stderr: %s', str(stderr))
+            logger.info('case %d stdout: %s', self.index, str(stdout))
+            logger.info('case %d stderr: %s', self.index, str(stderr))
         except Exception as e:
             logger.exception(e)
             status = STATUS_SYSTEM_ERROR
@@ -131,6 +134,9 @@ class DefaultCase(CaseBase):
         with open(output_file, 'rb') as out, self.open_output() as ans:
             return compare_stream(ans, out)
 
+    def do_output_str(self, output_str):
+        with BytesIO(output_str) as out, self.open_output() as ans:
+            return compare_stream(ans, out)
 
 # not supported
 class CustomJudgeCase:
