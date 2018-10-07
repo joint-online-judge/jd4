@@ -44,17 +44,32 @@ def compare_stream(fa, fb):
     while True:
         a = ra.read()
         b = rb.read()
-        while a != b:
-            if (a == 13 or
-                (both_spaced and (a == 32 or a == 9)) or
-                ((b == -1 or b == 10) and (a == 32 or a == 10))):
+        if a != b:
+            fa = both_spaced
+            fb = both_spaced
+            while a != -1 and (a == 32 or a == 10 or a == 9 or a == 13):
                 a = ra.read()
-            elif (b == 13 or
-                  (both_spaced and (b == 32 or b == 9)) or
-                  ((a == -1 or a == 10) and (b == 32 or b == 10))):
-                b = rb.read()
-            else:
+                fa = 1
+            while b != -1 and (b == 32 or b == 10 or b == 9 or b == 13):
+                b = ra.read()
+                fb = 1
+            if a != b or fa == 0 or fb == 0:
                 return False
-        if a == -1:
+        if a == -1 and b == -1:
             return True
-        both_spaced = (a == 32 or a == 9)
+        both_spaced = (a == 32 or a == 10 or a == 9)
+
+        # while a != b:
+        #     if (a == 13 or
+        #         (both_spaced and (a == 32 or a == 9)) or
+        #         ((b == -1 or b == 10) and (a == 32 or a == 10))):
+        #         a = ra.read()
+        #     elif (b == 13 or
+        #           (both_spaced and (b == 32 or b == 9)) or
+        #           ((a == -1 or a == 10) and (b == 32 or b == 10))):
+        #         b = rb.read()
+        #     else:
+        #         return False
+        # if a == -1:
+        #     return True
+        # both_spaced = (a == 32 or a == 9)
