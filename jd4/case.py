@@ -24,6 +24,7 @@ from jd4.util import read_pipe, parse_memory_bytes, parse_time_ns, movetree
 from jd4.log import logger
 
 CHUNK_SIZE = 32768
+MAX_STDOUT_SIZE = 134217728
 MAX_STDERR_SIZE = 8192
 DEFAULT_TIME_NS = 1000000000
 DEFAULT_MEMORY_BYTES = 268435456
@@ -63,7 +64,7 @@ class CaseBase:
                 others_task = gather(
                     loop.run_in_executor(None, self.do_input, stdin_file),
                     # loop.run_in_executor(None, self.do_output, stdout_file),
-                    read_pipe(stdout_file, MAX_STDERR_SIZE),
+                    read_pipe(stdout_file, MAX_STDOUT_SIZE),
                     read_pipe(stderr_file, MAX_STDERR_SIZE),
                     wait_cgroup(cgroup_sock,
                                 execute_task,
