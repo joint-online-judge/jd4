@@ -53,9 +53,11 @@ def compare_stream(fa, fb):
             while b != -1 and (b == 32 or b == 10 or b == 9 or b == 13):
                 b = ra.read()
                 fb = 1
+            if a == -1 and b == -1:
+                return True
             if a != b or fa == 0 or fb == 0:
                 return False
-        if a == -1 and b == -1:
+        elif a == -1 and b == -1:
             return True
         both_spaced = (a == 32 or a == 10 or a == 9)
 
