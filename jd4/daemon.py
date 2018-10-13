@@ -51,6 +51,7 @@ class JudgeHandler:
         self.code_type = self.request.pop('code_type')
         self.judge_category = self.request.pop('judge_category')
         self.judge_category = self.judge_category and self.judge_category.split(',') or []
+        self.show_detail = self.request.pop('show_detail')
 
         logger.info('Record: domain_id %s, pid %s, rid %s', self.domain_id, self.pid, self.rid)
 
@@ -142,9 +143,12 @@ class JudgeHandler:
             #     judge_text = stderr.decode(encoding='utf-8', errors='replace')
             # else:
             #     judge_text = ''
-            stdout = stdout.decode(encoding='utf-8', errors='replace')
             stderr = stderr.decode(encoding='utf-8', errors='replace')
-            answer = answer.decode(encoding='utf-8', errors='replace')
+            if self.show_detail:
+                stdout = stdout.decode(encoding='utf-8', errors='replace')
+                answer = answer.decode(encoding='utf-8', errors='replace')
+            else:
+                stdout = answer = ''
             self.next(status=STATUS_JUDGING,
                       case={'status': status,
                             'score': score,
