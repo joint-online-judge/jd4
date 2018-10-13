@@ -63,7 +63,7 @@ def _handle_backdoor():
 
 
 def _handle_reset_child():
-    logger.info('Remove /tmp')
+    # logger.info('Remove /tmp')
     remove_under('/tmp')
 
 

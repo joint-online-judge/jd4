@@ -20,12 +20,13 @@ from jd4.pool import get_sandbox, put_sandbox
 from jd4.status import STATUS_ACCEPTED, STATUS_WRONG_ANSWER, \
     STATUS_TIME_LIMIT_EXCEEDED, STATUS_MEMORY_LIMIT_EXCEEDED, \
     STATUS_RUNTIME_ERROR, STATUS_SYSTEM_ERROR
-from jd4.util import read_pipe, parse_memory_bytes, parse_time_ns, movetree
+from jd4.util import read_pipe, parse_memory_bytes, parse_time_ns, movetree, read_text_file
 from jd4.log import logger
 
 CHUNK_SIZE = 32768
 MAX_STDOUT_SIZE = 134217728
 MAX_STDERR_SIZE = 8192
+MAX_LOG_SIZE = 1024
 DEFAULT_TIME_NS = 1000000000
 DEFAULT_MEMORY_BYTES = 268435456
 PROCESS_LIMIT = 64
@@ -94,19 +95,23 @@ class CaseBase:
                 score = self.score
             # print(correct)
             # print(stderr)
-            logger.info('case %d stdout: %s', self.index, str(stdout[0:1000]))
-            logger.info('case %d stderr: %s', self.index, str(stderr[0:1000]))
+            # logger.info('case %d stdout: %s', self.index, str(stdout[0:MAX_LOG_SIZE]))
+            # logger.info('case %d stderr: %s', self.index, str(stderr[0:MAX_LOG_SIZE]))
         except Exception as e:
             logger.exception(e)
             status = STATUS_SYSTEM_ERROR
             score = 0
             time_usage_ns = 0
             memory_usage_bytes = 0
+            stdout = ''
             stderr = ''
             execute_status = 0
         finally:
             put_sandbox(sandbox)
-        return status, score, time_usage_ns, memory_usage_bytes, stderr, execute_status
+        stdout = stdout[0:MAX_LOG_SIZE]
+        stderr = stderr[0:MAX_LOG_SIZE]
+        answer = self.do_answer(MAX_LOG_SIZE)
+        return status, score, time_usage_ns, memory_usage_bytes, stdout, stderr, answer, execute_status
 
 
 def dos2unix(src, dst):
@@ -138,6 +143,10 @@ class DefaultCase(CaseBase):
     def do_output_str(self, output_str):
         with BytesIO(output_str) as out, self.open_output() as ans:
             return compare_stream(ans, out)
+
+    def do_answer(self, size):
+        with self.open_output() as ans:
+            return ans.read(size)
 
 # not supported
 class CustomJudgeCase:

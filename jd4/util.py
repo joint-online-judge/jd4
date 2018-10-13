@@ -44,9 +44,9 @@ def wait_and_reap_zombies(pid):
     return WEXITSTATUS(status)
 
 
-def read_text_file(file):
+def read_text_file(file, size=-1):
     with open(file) as f:
-        return f.read()
+        return f.read(size)
 
 
 def write_binary_file(file, data):
