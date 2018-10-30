@@ -59,7 +59,7 @@ def compare_stream(fa, fb):
                 return False
         elif a == -1 and b == -1:
             return True
-        both_spaced = (a == 32 or a == 10 or a == 9)
+        both_spaced = (a == 32 or a == 10 or a == 9 or b == 13)
 
         # while a != b:
         #     if (a == 13 or
