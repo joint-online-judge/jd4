@@ -15,8 +15,8 @@ SPACE = 32
 cdef class StreamReader:
     cdef stream
     cdef bytes buffer
-    cdef const char* begin
-    cdef const char* end
+    cdef const char*begin
+    cdef const char*end
 
     def __init__(self, stream):
         self.stream = stream
@@ -51,7 +51,7 @@ def compare_stream(fa, fb):
                 a = ra.read()
                 fa = 1
             while b != -1 and (b == 32 or b == 10 or b == 9 or b == 13):
-                b = ra.read()
+                b = rb.read()
                 fb = 1
             if a == -1 and b == -1:
                 return True
