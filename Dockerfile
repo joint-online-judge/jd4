@@ -17,10 +17,10 @@ RUN apt-get install -y \
             python3-dev \
             python3-pip \
             g++ \
-            python
+            python \
+            openjdk-11-jdk-headless
 
 #            fp-compiler \
-#            openjdk-8-jdk-headless \
 #            php7.0-cli \
 #            rustc \
 #            ghc \
