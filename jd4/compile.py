@@ -25,7 +25,6 @@ _LANGS_FILE = path.join(_CONFIG_DIR, 'langs.yaml')
 _langs = dict()
 
 
-
 class Executable:
     def __init__(self, execute_file, execute_args):
         self.execute_file = execute_file
@@ -104,6 +103,9 @@ class Compiler:
             await loop.run_in_executor(None,
                                        config['compile_time_files'],
                                        sandbox.in_dir)
+
+        # prevent the owner changed by user's tarfile
+        sandbox.reset_owner()
 
     async def build(self, sandbox, *, output_file=None, cgroup_file=None, config=None):
         lang_config = config.get('lang') or {}

@@ -2,7 +2,7 @@ import pickle
 from asyncio import gather, get_event_loop, open_connection
 from os import close as os_close, chdir, dup2, execve, fork, mkdir, \
     open as os_open, path, set_inheritable, spawnve, waitpid, \
-    O_RDONLY, O_WRONLY, P_WAIT
+    O_RDONLY, O_WRONLY, P_WAIT, chown, getuid, getgid
 from pty import STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO
 from shutil import rmtree
 from socket import socketpair
@@ -37,6 +37,10 @@ class Sandbox:
         self.writer.write_eof()
         waitpid(self.pid, 0)
         rmtree(self.sandbox_dir)
+
+    def reset_owner(self):
+        chown(self.in_dir, getuid(), getgid())
+        chown(self.out_dir, getuid(), getgid())
 
     async def reset(self):
         loop = get_event_loop()
