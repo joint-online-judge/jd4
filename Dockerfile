@@ -30,8 +30,8 @@ RUN apt-get install -y \
 #            mono-runtime \
 #            mono-mcs
 
-# Install OpenGL for VG101
-RUN apt-get install -y libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev
+# Install OpenGL / gmp for VG101/VE475
+RUN apt-get install -y libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev libgmp-dev
 
 COPY ./examples /srv/jd4/examples
 COPY ./jd4 /srv/jd4/jd4
