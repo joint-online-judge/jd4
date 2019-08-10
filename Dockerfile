@@ -36,7 +36,7 @@ RUN apt-get install -y libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev libgmp-dev
 # Install googletest
 RUN apt-get install -y googletest && \
     cd /usr/src/googletest && \
-    cmake . && make && make install
+    cmake . && make -j4 && make install
 
 COPY ./examples /srv/jd4/examples
 COPY ./jd4 /srv/jd4/jd4
