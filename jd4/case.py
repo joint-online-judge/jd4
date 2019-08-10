@@ -33,11 +33,13 @@ PROCESS_LIMIT = 64
 
 
 class CaseBase:
-    def __init__(self, time_limit_ns, memory_limit_bytes, process_limit, score, execute_args=None, index=0):
+    def __init__(self, time_limit_ns, memory_limit_bytes, process_limit, score,
+                 execute_file=None, execute_args=None, index=0):
         self.time_limit_ns = time_limit_ns
         self.memory_limit_bytes = memory_limit_bytes
         self.process_limit = process_limit
         self.score = score
+        self.execute_file = execute_file
         self.execute_args = execute_args
         self.index = index
 
@@ -46,7 +48,7 @@ class CaseBase:
         sandbox, = await get_sandbox(1)
         logger.info('Judge case %d in %s', self.index, sandbox.sandbox_dir)
         try:
-            executable = await package.install(sandbox, self.execute_args)
+            executable = await package.install(sandbox, self.execute_file, self.execute_args)
             stdin_file = path.join(sandbox.in_dir, 'stdin')
             mkfifo(stdin_file)
             stdout_file = path.join(sandbox.in_dir, 'stdout')
@@ -124,8 +126,9 @@ def dos2unix(src, dst):
 
 
 class DefaultCase(CaseBase):
-    def __init__(self, open_input, open_output, time_ns, memory_bytes, score, execute_args=None, index=0):
-        super().__init__(time_ns, memory_bytes, PROCESS_LIMIT, score, execute_args, index)
+    def __init__(self, open_input, open_output, time_ns, memory_bytes, score,
+                 execute_file=None, execute_args=None, index=0):
+        super().__init__(time_ns, memory_bytes, PROCESS_LIMIT, score, execute_file, execute_args, index)
         self.open_input = open_input
         self.open_output = open_output
 
@@ -147,6 +150,7 @@ class DefaultCase(CaseBase):
     def do_answer(self, size):
         with self.open_output() as ans:
             return ans.read(size)
+
 
 # not supported
 class CustomJudgeCase:
@@ -347,6 +351,7 @@ def read_yaml_cases(cases, judge_category, open):
     index = 0
     for case in cases:
         execute_args = case.get('execute_args')
+        execute_file = case.get('execute_file', None)
         if execute_args:
             execute_args = shlex.split(str(execute_args))
         category = case.get('category') or 'pretest'
@@ -359,6 +364,7 @@ def read_yaml_cases(cases, judge_category, open):
                               parse_time_ns(case['time']),
                               parse_memory_bytes(case['memory']),
                               int(case['score']),
+                              execute_file,
                               execute_args,
                               index)
         else:
