@@ -141,12 +141,32 @@ class Interpreter:
         self.execute_file = execute_file
         self.execute_args = execute_args
 
-    def build(self, code, code_type):
+    async def build(self, code, code_type, config):
+        lang_config = config.get('lang') or {}
+        loop = get_event_loop()
         package_dir = mkdtemp(prefix='jd4.package.')
         mkdir(path.join(package_dir, 'package'))
-        write_binary_file(path.join(package_dir, 'package', self.code_file),
-                          code)
-        return Package(package_dir, self.execute_file, self.execute_args)
+        if code_type == FILE_TYPE_TEXT:
+            await loop.run_in_executor(None,
+                                       write_binary_file,
+                                       path.join(package_dir, 'package', self.code_file),
+                                       code)
+        else:
+            logger.info("Extracting submitted files into package %s", package_dir)
+            await loop.run_in_executor(None,
+                                       extract_archive,
+                                       code,
+                                       path.join(package_dir, 'package'),
+                                       code_type)
+        if 'runtime_files' in config:
+            logger.info("Extracting runtime files to package %s", package_dir)
+            await loop.run_in_executor(None,
+                                       config['runtime_files'],
+                                       path.join(package_dir, 'package'),
+                                       False)
+        execute_file = lang_config.get('execute_file') or self.execute_file
+        execute_args = lang_config.get('execute_args') or self.execute_args
+        return Package(package_dir, execute_file, execute_args)
 
 
 async def _compiler_build(compiler,
@@ -185,8 +205,8 @@ async def _compiler_build(compiler,
         put_sandbox(sandbox)
 
 
-async def _interpreter_build(interpreter, code, code_type):
-    return interpreter.build(code, code_type), '', 0, 0
+async def _interpreter_build(interpreter, code, code_type, config):
+    return await interpreter.build(code, code_type, config), '', 0, 0
 
 
 async def build(lang, code, code_type=FILE_TYPE_TEXT, config=None):
