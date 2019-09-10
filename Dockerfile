@@ -6,6 +6,9 @@ FROM ubuntu:18.04
 
 ENV HOME="/root"
 
+# Install https support
+RUN apt-get update && apt-get install -y apt-transport-https ca-certificates apt-utils
+
 # Install the basic build essentials
 COPY ./sources.list /etc/apt/
 RUN apt-get update && apt-get install -y binutils build-essential cmake x11-xserver-utils unrar ssh-client
@@ -38,11 +41,13 @@ RUN apt-get install -y googletest && \
     cd /usr/src/googletest && \
     cmake . && make -j4 && make install
 
+COPY ./requirements.txt ./setup.py /srv/jd4/
+WORKDIR /srv/jd4
+RUN pip3 install -r ./requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/
+
 COPY ./examples /srv/jd4/examples
 COPY ./jd4 /srv/jd4/jd4
-COPY ./requirements.txt ./setup.py /srv/jd4/
 COPY examples/langs.yaml $HOME/.config/jd4/langs.yaml
-WORKDIR /srv/jd4
 
 # Install the python dependencies
 #RUN python3 -m venv /venv && \
@@ -56,7 +61,6 @@ WORKDIR /srv/jd4
 #    cp /tmp/jd4/examples/langs.yaml /root/.config/jd4/langs.yaml && \
 #    rm -rf /tmp/jd4
 
-RUN pip3 install -r ./requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/
 RUN python3 setup.py build_ext --inplace
 
 # support MATLAB in sandbox
