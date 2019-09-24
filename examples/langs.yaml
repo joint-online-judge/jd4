@@ -78,6 +78,11 @@ py3:
     code_file: foo.py
     execute_file: /usr/bin/python3
     execute_args: python3 foo.py
+octave:
+    type: interpreter
+    code_file: foo.m
+    execute_file: /usr/bin/octave
+    execute_args: octave foo.m
 php:
     type: interpreter
     code_file: foo.php

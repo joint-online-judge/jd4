@@ -21,7 +21,8 @@ RUN apt-get install -y \
             python3-pip \
             g++ \
             python \
-            openjdk-11-jdk-headless
+            openjdk-11-jdk-headless \
+            octave
 
 #            fp-compiler \
 #            php7.0-cli \
