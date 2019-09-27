@@ -67,6 +67,9 @@ RUN python3 setup.py build_ext --inplace
 # support MATLAB in sandbox
 RUN mkdir /$HOME/.matlab && mkdir /$HOME/.matlab/R2018a
 
+# Make mount point for texlive, check docker-compose for mount sources
+RUN mkdir /usr/local/texlive /$HOME/.texlive2019 /$HOME/texmf && mkdir /$HOME/.texlive2019/texmf-var /$HOME/.texlive2019/texmf-config
+
 ENV SERVER_URL="http://127.0.0.1:34765" \
     UNAME="judge" \
     PASSWORD="123456"
