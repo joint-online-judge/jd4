@@ -7,7 +7,7 @@ from pty import STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO
 from shutil import rmtree
 from socket import socketpair
 from struct import pack, unpack
-from sys import exit
+from sys import exit, stderr
 from tempfile import mkdtemp
 
 from jd4._sandbox import create_namespace, enter_namespace
@@ -119,7 +119,11 @@ def _handle_execute(execute_file,
                 os_close(fd)
         if cgroup_file:
             enter_cgroup(cgroup_file)
-        execve(execute_file, execute_args, SPAWN_ENV)
+        try:
+            execve(execute_file, execute_args, SPAWN_ENV)
+        except Exception as e:
+            print(e, file=stderr)
+            exit(-1)
     return wait_and_reap_zombies(pid)
 
 
