@@ -105,8 +105,8 @@ class CaseBase:
             score = 0
             time_usage_ns = 0
             memory_usage_bytes = 0
-            stdout = ''
-            stderr = ''
+            stdout = bytes()
+            stderr = bytes()
             execute_status = 0
         finally:
             put_sandbox(sandbox)
