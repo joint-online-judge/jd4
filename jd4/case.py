@@ -100,14 +100,14 @@ class CaseBase:
             # logger.info('case %d stdout: %s', self.index, str(stdout[0:MAX_LOG_SIZE]))
             # logger.info('case %d stderr: %s', self.index, str(stderr[0:MAX_LOG_SIZE]))
         except Exception as e:
-            logger.error('Judge case %d Error: %s', self.index, e)
-            # logger.exception(e)
+            logger.error('Judge case %d Error: %s', self.index)
+            logger.exception(e)
             status = STATUS_SYSTEM_ERROR
             score = 0
             time_usage_ns = 0
             memory_usage_bytes = 0
             stdout = bytes()
-            stderr = bytes()
+            stderr = e.__str__().encode(encoding='utf-8')
             execute_status = 0
         finally:
             put_sandbox(sandbox)
