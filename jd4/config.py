@@ -26,7 +26,7 @@ def _load_config():
 
 
 config = _load_config()
-print(config)
+# print(config)
 
 
 async def save_config():
