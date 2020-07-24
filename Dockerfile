@@ -41,6 +41,9 @@ RUN apt-get install -y libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev libgmp-dev
 RUN apt-get install -y googletest && \
     cd /usr/src/googletest && \
     cmake . && make -j4 && make install
+    
+# Install clang tools
+RUN apt-get install -y clang-tools clang-format clang-tidy
 
 COPY ./requirements.txt ./setup.py /srv/jd4/
 WORKDIR /srv/jd4
