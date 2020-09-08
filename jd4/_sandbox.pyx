@@ -64,7 +64,7 @@ def enter_namespace(root_dir, in_dir, out_dir):
     bind_or_link('/usr/share', 'usr/share')
     bind_or_link('/usr/local', 'usr/local', True)
     bind_or_link('/var/lib/ghc', 'var/lib/ghc')
-    bind_mount(in_dir, 'in', True, False, True, True)
+    bind_mount(in_dir, 'in', True, False, True, False)
     bind_mount(out_dir, 'out', True, False, True, False)
     bind_mount('/root/.matlab', '.matlab', True, False, True, True, True)
     write_text_file('etc/passwd', 'icebox:x:1000:1000:icebox:/:/bin/bash\n')
