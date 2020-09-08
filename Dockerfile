@@ -45,6 +45,10 @@ RUN apt-get install -y googletest && \
 # Install clang tools
 RUN apt-get install -y clang-tools clang-format clang-tidy
 
+# Install ocaml
+
+RUN apt-get install -y ocaml
+
 COPY ./requirements.txt ./setup.py /srv/jd4/
 WORKDIR /srv/jd4
 RUN pip3 install -r ./requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/

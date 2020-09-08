@@ -5,6 +5,13 @@ other:
     code_file: foo.sh
     execute_file: foo
     execute_args: foo
+ocaml:
+    type: compiler
+    compiler_file: /usr/bin/ocamlopt
+    compiler_args: ocamlopt -o /out/foo /in/foo.ml
+    code_file: foo.ml
+    execute_file: foo
+    execute_args: foo
 c:
     type: compiler
     compiler_file: /usr/bin/gcc
