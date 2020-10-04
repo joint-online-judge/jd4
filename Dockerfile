@@ -46,8 +46,10 @@ RUN apt-get install -y googletest && \
 RUN apt-get install -y clang-tools clang-format clang-tidy
 
 # Install ocaml
-
 RUN apt-get install -y ocaml
+
+# Install additional python packages
+RUN pip3 install ortools
 
 COPY ./requirements.txt ./setup.py /srv/jd4/
 WORKDIR /srv/jd4
