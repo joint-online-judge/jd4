@@ -45,6 +45,9 @@ RUN apt-get install -y googletest && \
 # Install clang tools
 RUN apt-get install -y clang-tools clang-format clang-tidy
 
+# Install llvm tools
+RUN apt-get install -y llvm
+
 # Install ocaml
 RUN apt-get install -y ocaml
 
