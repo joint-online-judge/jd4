@@ -11,12 +11,25 @@ RUN apt-get update && apt-get install -y apt-transport-https ca-certificates apt
 
 # Install the basic build essentials
 COPY ./sources.list /etc/apt/
-RUN apt-get update && apt-get install -y binutils build-essential cmake x11-xserver-utils unrar ssh-client
+RUN apt-get update && \
+    apt-get install -y \
+            binutils \
+            build-essential \
+            cmake \
+            x11-xserver-utils \
+            unrar \
+            unzip \
+            ssh-client \
+            wget \
+            curl \
+            lsb-release \
+            software-properties-common \
+            gnupg \
+            bubblewrap
 
 # Install the supported languages
 RUN apt-get install -y \
             gcc \
-            clang \
             python3-dev \
             python3-pip \
             g++ \
@@ -42,14 +55,23 @@ RUN apt-get install -y googletest && \
     cd /usr/src/googletest && \
     cmake . && make -j4 && make install
 
+# Install llvm 17
+RUN wget https://apt.llvm.org/llvm.sh && \
+    /bin/bash ./llvm.sh 17 && \
+    update-alternatives --install /usr/bin/clang clang /usr/bin/clang-17 1  && \
+    update-alternatives --install /usr/bin/lldb lldb /usr/bin/lldb-17 1
+
 # Install clang tools
 RUN apt-get install -y clang-tools clang-format clang-tidy
 
-# Install llvm tools
-RUN apt-get install -y llvm
-
 # Install ocaml
-RUN apt-get install -y ocaml
+RUN bash -c "yes '' | sh <(curl -fsSL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)" && \
+    bash -c "opam init --disable-sandboxing --auto-setup -y"
+ENV PATH="/root/.opam/default/bin:${PATH}"
+ENV OPAM_SWITCH_PREFIX="/root/.opam/default"
+ENV CAML_LD_LIBRARY_PATH="/root/.opam/default/lib/stublibs:/root/.opam/default/lib/ocaml/stublibs:/root/.opam/default/lib/ocaml"
+ENV OCAML_TOPLEVEL_PATH="/root/.opam/default/lib/toplevel"
+
 
 COPY ./requirements.txt ./setup.py /srv/jd4/
 WORKDIR /srv/jd4
