@@ -10,7 +10,7 @@ ENV HOME="/root"
 RUN apt-get update && apt-get install -y apt-transport-https ca-certificates apt-utils
 
 # Install the basic build essentials
-COPY ./sources.list /etc/apt/
+# COPY ./sources.list /etc/apt/
 RUN apt-get update && \
     apt-get install -y \
             binutils \
@@ -60,7 +60,8 @@ RUN wget https://apt.llvm.org/llvm.sh && \
     /bin/bash ./llvm.sh 17 && \
     update-alternatives --install /usr/bin/clang clang /usr/bin/clang-17 1  && \
     update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 1  && \
-    update-alternatives --install /usr/bin/lldb lldb /usr/bin/lldb-17 1
+    update-alternatives --install /usr/bin/lldb lldb /usr/bin/lldb-17 1 && \
+    rm llvm.sh
 
 # Install clang tools
 RUN apt-get install -y clang-tools clang-format clang-tidy
