@@ -59,6 +59,7 @@ RUN apt-get install -y googletest && \
 RUN wget https://apt.llvm.org/llvm.sh && \
     /bin/bash ./llvm.sh 17 && \
     update-alternatives --install /usr/bin/clang clang /usr/bin/clang-17 1  && \
+    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 1  && \
     update-alternatives --install /usr/bin/lldb lldb /usr/bin/lldb-17 1
 
 # Install clang tools
