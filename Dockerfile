@@ -56,12 +56,12 @@ RUN apt-get install -y googletest && \
     cmake . && make -j4 && make install
 
 # Install llvm 17
-# RUN wget https://apt.llvm.org/llvm.sh && \
-#     /bin/bash ./llvm.sh 17 && \
-#     update-alternatives --install /usr/bin/clang clang /usr/bin/clang-17 1  && \
-#     update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 1  && \
-#     update-alternatives --install /usr/bin/lldb lldb /usr/bin/lldb-17 1 && \
-#     rm llvm.sh
+COPY ./register-clang-version.sh /
+RUN wget https://apt.llvm.org/llvm.sh && \
+    /bin/bash ./llvm.sh 17 && \
+    rm llvm.sh && \
+    /bin/bash ./register-clang-version.sh 17 1 && \
+    rm ./register-clang-version.sh
 
 # Install clang tools
 RUN apt-get install -y clang-tools clang-format clang-tidy
