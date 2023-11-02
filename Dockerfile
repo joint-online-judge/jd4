@@ -59,9 +59,8 @@ RUN apt-get install -y googletest && \
 COPY ./register-clang-version.sh /
 RUN wget https://apt.llvm.org/llvm.sh && \
     /bin/bash ./llvm.sh 17 && \
-    apt-get install -y clang-tidy-17 clang-format-17 clang-tools-17 && \
     rm llvm.sh && \
-    /bin/bash ./register-clang-version.sh 17 1 && \
+    # /bin/bash ./register-clang-version.sh 17 1 && \
     rm ./register-clang-version.sh
 
 # Install ocaml
