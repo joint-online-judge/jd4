@@ -36,7 +36,10 @@ RUN apt-get install -y \
             g++ \
             python \
             openjdk-11-jdk-headless \
-            octave
+            octave \
+            clang-tools \
+            clang-format \
+            clang-tidy
 
 #            fp-compiler \
 #            php7.0-cli \
