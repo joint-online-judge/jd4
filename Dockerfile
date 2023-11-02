@@ -30,6 +30,7 @@ RUN apt-get update && \
 # Install the supported languages
 RUN apt-get install -y \
             gcc \
+            clang \
             python3-dev \
             python3-pip \
             g++ \
